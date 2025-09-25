@@ -7,6 +7,7 @@ function genLeadId() {
 }
 
 window.__leadId = null;
+window.__shouldSaveContact = false;
 const WEBHOOK_URL = "https://hook.eu2.make.com/1eugiujlu8s20qptl3cgj49bikwkcrqc";
 
 // === Елементи ===
@@ -91,7 +92,6 @@ function initDirectPhoneActions() {
       if (window.confirm('Зберегти контакт DOLOTA?')) {
         const vcf = buildVCard();
         triggerVcfDownload(vcf);
-      }
     });
   }
 }
@@ -629,6 +629,12 @@ form.addEventListener('submit', async (e) => {
     // autoOpenVCard(meta); // Відключено, щоб після форми не відкривався VCF-файл.
     statusEl.className = 'status ok';
     saveVisitor(payload);
+    if (window.__shouldSaveContact) {
+      // Якщо користувач погодився, пропонуємо зберегти контакт одразу після успішної відправки.
+      const vcf = buildVCard(meta);
+      triggerVcfDownload(vcf);
+      window.__shouldSaveContact = false;
+    }
     document.getElementById('afterSubmit').style.display = 'block';
     catalogs.style.display = 'block';
     catalogs.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -668,6 +674,7 @@ form.addEventListener('submit', async (e) => {
     statusEl.textContent = 'Помилка відправлення. Спробуйте ще раз або перевірте інтернет.';
     statusEl.className = 'status err';
   } finally {
+    window.__shouldSaveContact = false;
     btn.disabled = false;
     btn.textContent = 'Надіслати';
   }
