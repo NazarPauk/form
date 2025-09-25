@@ -81,6 +81,10 @@ header {
   gap: 16px;
 }
 
+.brand__logo-link {
+  display: inline-flex;
+}
+
 .brand img {
   height: 52px;
   width: auto;
@@ -418,4 +422,27 @@ footer {
 .contact-alt .contact-box {
   background: transparent;
   border: 0;
+}
+
+.catalog__gift-btn {
+  display: none;
+  margin: 12px 0 20px;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--brand-yellow) 0%, #e7b629 100%);
+  color: #2b1d13;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 0.06s ease, filter 0.2s ease;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.catalog__gift-btn:hover {
+  filter: brightness(1.05);
+}
+
+.catalog__gift-btn:active {
+  transform: translateY(1px);
 }
