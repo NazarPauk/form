@@ -14,7 +14,14 @@ const form = document.getElementById('leadForm');
 const statusEl = document.getElementById('status');
 const btn = document.getElementById('submitBtn');
 const catalogs = document.getElementById('catalogs');
+const afterSubmit = document.getElementById('afterSubmit');
 const phoneInput = document.getElementById('phone');
+const catalogGiftBtn = document.getElementById('catalogGiftBtn');
+const statusModal = document.getElementById('statusModal');
+const statusModalText = document.getElementById('statusModalText');
+const statusModalGiftBtn = document.getElementById('statusModalGiftBtn');
+const modalCloseEls = statusModal ? statusModal.querySelectorAll('[data-modal-close]') : [];
+let lastSubmissionStatusValue = null;
 
 const COMPANY_PHONE = '+380933332212';
 const PHONE_PREFIX = '+38';
@@ -52,6 +59,179 @@ async function track(eventName, data) {
     /* noop */
   }
 }
+
+function normalizeStatusData(raw, payload) {
+  const source = raw && typeof raw === 'object' ? raw : {};
+  const statusCandidates = [
+    source.status,
+    source.Status,
+    source.state,
+    source.result && source.result.status,
+    source.data && source.data.status,
+  ];
+  let statusValue = null;
+  for (const cand of statusCandidates) {
+    if ((typeof cand === 'string' || typeof cand === 'number') && String(cand).trim()) {
+      statusValue = String(cand).trim();
+      break;
+    }
+  }
+  if (!statusValue && source && typeof source === 'object') {
+    for (const key of Object.keys(source)) {
+      if (key.toLowerCase().includes('raw')) continue;
+      const value = source[key];
+      if ((typeof value === 'string' || typeof value === 'number') && String(value).trim() && key.toLowerCase().includes('status')) {
+        statusValue = String(value).trim();
+        break;
+      }
+    }
+  }
+  if (!statusValue && source && typeof source === 'object') {
+    for (const [key, value] of Object.entries(source)) {
+      if (key.toLowerCase().includes('raw')) continue;
+      if ((typeof value === 'string' || typeof value === 'number') && String(value).trim()) {
+        statusValue = String(value).trim();
+        break;
+      }
+    }
+  }
+  const telCandidates = [
+    source.tel,
+    source.phone,
+    source.phone_e164,
+    source.phone_digits,
+    payload && payload.phone,
+    payload && payload.phone_e164,
+  ];
+  let telValue = null;
+  for (const cand of telCandidates) {
+    if ((typeof cand === 'string' || typeof cand === 'number') && String(cand).trim()) {
+      telValue = String(cand).trim();
+      break;
+    }
+  }
+  return {
+    raw: source,
+    status: statusValue || null,
+    tel: telValue || null,
+  };
+}
+
+function normalizedStatusString(value) {
+  if (typeof value !== 'string') return '';
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
+function updateGiftActions(statusValue) {
+  const normalized = normalizedStatusString(statusValue);
+  const modalHideTriggers = ['отримано', 'виграв', 'отримав', 'отримала'];
+  const modalShouldHide = modalHideTriggers.some(
+    (trigger) => normalized === trigger || normalized.startsWith(`${trigger} `),
+  );
+  const catalogShouldShow = normalized === 'не брав участі';
+  if (statusModalGiftBtn) {
+    statusModalGiftBtn.style.display = modalShouldHide ? 'none' : 'inline-flex';
+    statusModalGiftBtn.disabled = false;
+    statusModalGiftBtn.textContent = 'Отримати подарунок';
+  }
+  if (catalogGiftBtn) {
+    catalogGiftBtn.style.display = catalogShouldShow ? 'inline-flex' : 'none';
+    catalogGiftBtn.disabled = false;
+    catalogGiftBtn.textContent = 'Отримати подарунок';
+  }
+  lastSubmissionStatusValue = statusValue && statusValue.trim() ? statusValue.trim() : null;
+}
+
+function bindGiftButton(buttonEl, location) {
+  if (!buttonEl) return;
+  buttonEl.addEventListener('click', () => {
+    buttonEl.disabled = true;
+    buttonEl.textContent = 'Запит на подарунок відправлено';
+    track('gift_request_click', {
+      leadId: window.__leadId || null,
+      status: lastSubmissionStatusValue || null,
+      location,
+    });
+  });
+}
+
+bindGiftButton(catalogGiftBtn, 'catalog');
+bindGiftButton(statusModalGiftBtn, 'modal');
+updateGiftActions(null);
+
+function composeInlineSuccessMessage(statusData) {
+  if (statusData && statusData.status) {
+    return `Дякуємо! Статус: ${statusData.status}.`;
+  }
+  return 'Дякуємо! Дані успішно надіслані.';
+}
+
+function composeModalMessage(statusData) {
+  const statusValue = statusData && statusData.status ? statusData.status : null;
+  const telValue = statusData && statusData.tel ? statusData.tel : null;
+  const base = statusValue ? `Статус заявки: ${statusValue}.` : 'Ми отримали вашу заявку.';
+  const telInfo = telValue ? ` Контакт: ${telValue}.` : '';
+  const normalized = normalizedStatusString(statusValue);
+  let hint = ' Ви можете забрати подарунок біля стенду DOLOTA.';
+  if (normalized === 'виграв' || normalized.startsWith('виграв ')) {
+    hint = ' Ми зв’яжемося з вами щодо вручення подарунку.';
+  } else if (
+    normalized === 'отримано' ||
+    normalized.startsWith('отримано ') ||
+    normalized === 'отримав' ||
+    normalized.startsWith('отримав ') ||
+    normalized === 'отримала' ||
+    normalized.startsWith('отримала ')
+  ) {
+    hint = ' Подарунок вже видано. Дякуємо!';
+  }
+  return `${base}${telInfo}${hint}`;
+}
+
+function openStatusModalWithData(statusData) {
+  if (!statusModal) return;
+  if (!statusModalText) return;
+  statusModalText.textContent = composeModalMessage(statusData || {});
+  statusModal.classList.add('is-open');
+  statusModal.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('modal-open');
+  const giftVisible = statusModalGiftBtn && statusModalGiftBtn.style.display !== 'none';
+  const focusTarget = giftVisible
+    ? statusModalGiftBtn
+    : statusModal.querySelector('.modal__close');
+  if (focusTarget && typeof focusTarget.focus === 'function') {
+    try {
+      focusTarget.focus({ preventScroll: true });
+    } catch (e) {
+      focusTarget.focus();
+    }
+  }
+}
+
+function closeStatusModal() {
+  if (!statusModal) return;
+  statusModal.classList.remove('is-open');
+  statusModal.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('modal-open');
+}
+
+if (statusModal) {
+  modalCloseEls.forEach((el) => {
+    el.addEventListener('click', () => {
+      closeStatusModal();
+    });
+  });
+  document.addEventListener('keydown', (evt) => {
+    if (evt.key === 'Escape' && statusModal.classList.contains('is-open')) {
+      closeStatusModal();
+    }
+  });
+}
+
+closeStatusModal();
 
 // === UTM/Geo helpers ===
 const UTM_BASE = { source: 'nfc', medium: 'booth', campaign: 'expo_2025' };
@@ -474,15 +654,24 @@ async function sendContactNow(payloadObj) {
     timestamp: new Date().toISOString(),
     event: 'contact_submitted',
   };
+  const response = await fetch(WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    keepalive: true,
+  });
+  if (!response.ok) {
+    throw new Error(`Webhook error ${response.status}`);
+  }
+  const rawText = await response.text();
+  if (!rawText) {
+    return {};
+  }
   try {
-    await fetch(WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      keepalive: true,
-    });
+    const parsed = JSON.parse(rawText);
+    return parsed && typeof parsed === 'object' ? parsed : { raw: rawText };
   } catch (e) {
-    /* ignore */
+    return { raw: rawText };
   }
 }
 let categorySent = false;
@@ -538,17 +727,25 @@ function loadVisitor() {
 // === Submit handler ===
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
-  statusEl.textContent = '';
+  if (statusEl) statusEl.textContent = '';
+  closeStatusModal();
+  updateGiftActions(null);
   const fd = new FormData(form);
   const v = validate(fd);
   if (!window.__leadId) window.__leadId = genLeadId();
   if (!v.ok) {
-    statusEl.textContent = v.msg;
-    statusEl.className = 'status err';
+    if (statusEl) {
+      statusEl.textContent = v.msg;
+      statusEl.className = 'status err';
+    }
     return;
   }
   btn.disabled = true;
   btn.textContent = 'Запитуємо геолокацію…';
+  if (statusEl) {
+    statusEl.textContent = 'Готуємо дані…';
+    statusEl.className = 'status';
+  }
 
   const payload = Object.fromEntries(fd.entries());
   if (v.phoneCheck) {
@@ -559,7 +756,7 @@ form.addEventListener('submit', async (e) => {
   const meta = await buildUtm(); // тут чекаємо підтвердження/позицію
   const geoPerm = await getGeoPermissionState();
   const tech = await collectTech();
-  const behavior = initBehaviorTracking().snapshot(); // короткий знімок на момент сабміту
+  const behavior = behaviorTracker.snapshot(); // короткий знімок на момент сабміту
   payload.leadId = window.__leadId;
   payload.tag = meta.tag;
   payload.source = 'expo_nfc';
@@ -572,14 +769,26 @@ form.addEventListener('submit', async (e) => {
   payload.geo_permission = geoPerm;
 
   try {
-    await sendContactNow(payload);
-    statusEl.textContent = 'Дякуємо! Дані успішно надіслані.';
+    btn.textContent = 'Відправляємо дані…';
+    if (statusEl) statusEl.textContent = 'Відправляємо дані…';
+    const webhookResponse = await sendContactNow(payload);
+    const statusData = normalizeStatusData(webhookResponse, payload);
+    const successMsg = composeInlineSuccessMessage(statusData);
+    if (statusEl) {
+      statusEl.textContent = successMsg;
+      statusEl.className = 'status ok';
+    }
     autoOpenVCard(meta);
-    statusEl.className = 'status ok';
+    updateGiftActions(statusData.status);
+    openStatusModalWithData(statusData);
     saveVisitor(payload);
-    document.getElementById('afterSubmit').style.display = 'block';
-    catalogs.style.display = 'block';
-    catalogs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (afterSubmit) afterSubmit.style.display = 'block';
+    if (catalogs) {
+      catalogs.style.display = 'block';
+      try {
+        catalogs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (e) {}
+    }
     augmentCatalogLinks(meta);
     augmentTelegramCTA(meta);
     try {
@@ -613,8 +822,10 @@ form.addEventListener('submit', async (e) => {
       };
     }
   } catch (err) {
-    statusEl.textContent = 'Помилка відправлення. Спробуйте ще раз або перевірте інтернет.';
-    statusEl.className = 'status err';
+    if (statusEl) {
+      statusEl.textContent = 'Помилка відправлення. Спробуйте ще раз або перевірте інтернет.';
+      statusEl.className = 'status err';
+    }
   } finally {
     btn.disabled = false;
     btn.textContent = 'Надіслати';

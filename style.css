@@ -81,6 +81,10 @@ header {
   gap: 16px;
 }
 
+.brand__logo-link {
+  display: inline-flex;
+}
+
 .brand img {
   height: 52px;
   width: auto;
@@ -418,4 +422,142 @@ footer {
 .contact-alt .contact-box {
   background: transparent;
   border: 0;
+}
+
+.catalog__gift-btn {
+  display: none;
+  margin: 12px 0 20px;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(180deg, var(--brand-yellow) 0%, #e7b629 100%);
+  color: #2b1d13;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  cursor: pointer;
+  transition: transform 0.06s ease, filter 0.2s ease;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.catalog__gift-btn:hover {
+  filter: brightness(1.05);
+}
+
+.catalog__gift-btn:active {
+  transform: translateY(1px);
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 1000;
+}
+
+.modal.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.68);
+}
+
+.modal__dialog {
+  position: relative;
+  width: min(420px, calc(100% - 32px));
+  background: linear-gradient(180deg, var(--card) 0%, var(--card-2) 100%);
+  border: 1px solid var(--input-border);
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  padding: 28px 24px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  z-index: 1;
+}
+
+.modal__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 0;
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--muted);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: filter 0.15s ease, transform 0.1s ease;
+}
+
+.modal__close:hover {
+  filter: brightness(1.1);
+}
+
+.modal__close:active {
+  transform: scale(0.96);
+}
+
+.modal__title {
+  margin: 0;
+  font-size: 20px;
+  text-align: center;
+}
+
+.modal__status {
+  margin: 0;
+  font-size: 16px;
+  color: var(--muted);
+  text-align: center;
+  line-height: 1.5;
+}
+
+.modal__gift-btn {
+  align-self: center;
+  padding: 12px 22px;
+  border-radius: 14px;
+  background: linear-gradient(180deg, var(--brand-yellow) 0%, #e7b629 100%);
+  color: #2b1d13;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 0;
+  cursor: pointer;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4);
+  transition: transform 0.08s ease, filter 0.18s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal__gift-btn:hover {
+  filter: brightness(1.05);
+}
+
+.modal__gift-btn:active {
+  transform: translateY(1px);
+}
+
+.modal__content {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  align-items: center;
 }
