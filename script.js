@@ -7,15 +7,16 @@ function genLeadId() {
 }
 
 window.__leadId = null;
+window.__shouldSaveContact = false;
 const WEBHOOK_URL = "https://hook.eu2.make.com/1eugiujlu8s20qptl3cgj49bikwkcrqc";
 
 // === Елементи ===
 const form = document.getElementById('leadForm');
 const statusEl = document.getElementById('status');
 const btn = document.getElementById('submitBtn');
+const callCtaLink = document.getElementById('callCta');
 const directPhoneEl = document.getElementById('directPhone');
 const catalogs = document.getElementById('catalogs');
-const PHONE_TEL_LINK = 'tel:+380933332212';
 
 /**
  * Copies the provided phone number to the clipboard using the modern Clipboard API
@@ -77,13 +78,18 @@ function initDirectPhoneActions() {
     });
   }
 
+  if (callCtaLink) {
+    callCtaLink.addEventListener('click', (event) => {
+      // Явно відкриваємо застосунок дзвінків із потрібним номером для посилання "Зателефонувати нам".
+      event.preventDefault();
+      window.location.href = 'tel:+380933332212';
+    });
+  }
+
   if (btn) {
     btn.addEventListener('click', () => {
-      try {
-        window.location.href = PHONE_TEL_LINK;
-      } catch (e) {
-        window.open(PHONE_TEL_LINK, '_self');
-      }
+      // Пропонуємо зберегти контакт перед відправкою форми.
+      window.__shouldSaveContact = window.confirm('Зберегти контакт DOLOTA після відправки форми?');
     });
   }
 }
@@ -618,9 +624,15 @@ form.addEventListener('submit', async (e) => {
   try {
     await sendContactNow(payload);
     statusEl.textContent = 'Дякуємо! Дані успішно надіслані.';
-    autoOpenVCard(meta);
+    // autoOpenVCard(meta); // Відключено, щоб після форми не відкривався VCF-файл.
     statusEl.className = 'status ok';
     saveVisitor(payload);
+    if (window.__shouldSaveContact) {
+      // Якщо користувач погодився, пропонуємо зберегти контакт одразу після успішної відправки.
+      const vcf = buildVCard(meta);
+      triggerVcfDownload(vcf);
+      window.__shouldSaveContact = false;
+    }
     document.getElementById('afterSubmit').style.display = 'block';
     catalogs.style.display = 'block';
     catalogs.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -660,6 +672,7 @@ form.addEventListener('submit', async (e) => {
     statusEl.textContent = 'Помилка відправлення. Спробуйте ще раз або перевірте інтернет.';
     statusEl.className = 'status err';
   } finally {
+    window.__shouldSaveContact = false;
     btn.disabled = false;
     btn.textContent = 'Надіслати';
   }
