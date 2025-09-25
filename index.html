@@ -11,13 +11,11 @@
 <body>
 <div class="container">
 <header>
-  <div class="brand">
-    <a class="brand__logo-link" href="https://dolota.ua/">
-      <img alt="DOLOTA" src="images/logo.png"/>
-    </a>
-    <h1>DOLOTA · Відділ продажу</h1>
-  </div>
-  <div class="sub">Міжнародна виставка · <span class="ua-flag" title="Ukraine"></span> UA</div>
+<div class="brand">
+<img alt="DOLOTA" src="images/logo.png" >
+<h1>DOLOTA · Відділ продажу</h1>
+</div>
+<div class="sub">Міжнародна виставка · <span class="ua-flag" title="Ukraine"></span> UA</div>
 </header>
 <section class="card">
 <h2>Реєстрація контакту для доступу до каталогів</h2>
@@ -55,14 +53,23 @@
 </div>
 <div class="note">Натискаючи «Надіслати», ви погоджуєтесь на обробку ваших персональних даних з метою зворотнього зв’язку та надання матеріалів.</div>
 </form>
-    <div class="after-submit" id="afterSubmit" style="display:none; margin-top:18px;">
-      <button id="saveVCardBtn">Зберегти контакт DOLOTA</button>
-      <div class="sub">Натисніть, щоб додати контакт у телефон і повернутися до вибору каталогу.</div>
-    </div>
-    <div class="catalogs" id="catalogs">
-      <h3>Каталоги та матеріали</h3>
-      <button class="catalog__gift-btn" id="catalogGiftBtn" type="button">Отримати подарунок</button>
-      <ul>
+<div class="after-submit" id="afterSubmit" style="display:none; margin-top:18px;">
+<button id="saveVCardBtn">Зберегти контакт DOLOTA</button>
+<div class="sub">Натисніть, щоб додати контакт у телефон і повернутися до вибору каталогу.</div>
+</div>
+<div class="modal" id="submissionModal" aria-hidden="true">
+  <div class="modal__backdrop" id="submissionModalBackdrop"></div>
+  <div aria-labelledby="submissionModalTitle" class="modal__content" role="dialog">
+    <button aria-label="Закрити" class="modal__close" id="submissionModalClose" type="button">×</button>
+    <h3 class="modal__title" id="submissionModalTitle">Статус заявки</h3>
+    <p class="modal__description" id="submissionStatusText"></p>
+    <p class="modal__description" id="submissionTelText"></p>
+    <button class="modal__gift-btn" id="claimGiftBtn" type="button">Отримати подарунок</button>
+  </div>
+</div>
+<div class="catalogs" id="catalogs">
+<h3>Каталоги та матеріали</h3>
+<ul>
 <li><a data-category="Каталог бурового інструменту" href="#" rel="noopener" target="_blank">Каталог бурового інструменту <span class="badge">PDF</span></a></li>
 <li><a data-category="Прайс-лист основних позицій" href="#" rel="noopener" target="_blank">Прайс-лист основних позицій <span class="badge">XLSX</span></a></li>
 <li><a data-category="Огляд PDC доліт" href="#" rel="noopener" target="_blank">Огляд PDC доліт <span class="badge">WEB</span></a></li>

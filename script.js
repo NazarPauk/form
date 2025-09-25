@@ -15,8 +15,6 @@ const statusEl = document.getElementById('status');
 const btn = document.getElementById('submitBtn');
 const catalogs = document.getElementById('catalogs');
 const phoneInput = document.getElementById('phone');
-const catalogGiftBtn = document.getElementById('catalogGiftBtn');
-let lastSubmissionStatusValue = null;
 const submissionModal = document.getElementById('submissionModal');
 const submissionModalBackdrop = document.getElementById('submissionModalBackdrop');
 const submissionModalClose = document.getElementById('submissionModalClose');
@@ -25,7 +23,6 @@ const submissionTelText = document.getElementById('submissionTelText');
 const claimGiftBtn = document.getElementById('claimGiftBtn');
 let lastSubmissionStatusValue = null;
 let originalBodyOverflow = '';
-
 
 const COMPANY_PHONE = '+380933332212';
 const PHONE_PREFIX = '+38';
@@ -120,25 +117,6 @@ function normalizeStatusData(raw, payload) {
     tel: telValue || null,
   };
 }
-
-
-function updateGiftButton(statusValue) {
-  if (!catalogGiftBtn) return;
-  const normalized = typeof statusValue === 'string' ? statusValue.trim().toLowerCase() : '';
-  const shouldShow = normalized === 'не брав участі';
-  catalogGiftBtn.style.display = shouldShow ? 'inline-flex' : 'none';
-  catalogGiftBtn.disabled = false;
-  catalogGiftBtn.textContent = 'Отримати подарунок';
-  lastSubmissionStatusValue = statusValue && statusValue.trim() ? statusValue.trim() : null;
-}
-
-if (catalogGiftBtn) {
-  catalogGiftBtn.addEventListener('click', () => {
-    catalogGiftBtn.disabled = true;
-    catalogGiftBtn.textContent = 'Запит на подарунок відправлено';
-    track('gift_request_click', { leadId: window.__leadId || null, status: lastSubmissionStatusValue || null });
-  });
-  updateGiftButton(null);
 
 function closeSubmissionModal() {
   if (!submissionModal) return;
@@ -705,8 +683,7 @@ function loadVisitor() {
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
   statusEl.textContent = '';
-  updateGiftButton(null);
-
+  closeSubmissionModal();
   const fd = new FormData(form);
   const v = validate(fd);
   if (!window.__leadId) window.__leadId = genLeadId();
@@ -752,7 +729,7 @@ form.addEventListener('submit', async (e) => {
     statusEl.textContent = successMsg;
     autoOpenVCard(meta);
     statusEl.className = 'status ok';
-    updateGiftButton(statusData.status);
+    openSubmissionModal(statusData);
     saveVisitor(payload);
     document.getElementById('afterSubmit').style.display = 'block';
     catalogs.style.display = 'block';
