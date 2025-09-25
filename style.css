@@ -81,6 +81,10 @@ header {
   gap: 16px;
 }
 
+.brand__logo-link {
+  display: inline-flex;
+}
+
 .brand img {
   height: 52px;
   width: auto;
@@ -420,6 +424,11 @@ footer {
   border: 0;
 }
 
+
+.catalog__gift-btn {
+  display: none;
+  margin: 12px 0 20px;
+
 .modal {
   position: fixed;
   inset: 0;
@@ -496,10 +505,11 @@ footer {
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
 }
 
-.modal__gift-btn:hover {
+
+.catalog__gift-btn:hover {
   filter: brightness(1.05);
 }
 
-.modal__gift-btn:active {
+.catalog__gift-btn:active {
   transform: translateY(1px);
 }
