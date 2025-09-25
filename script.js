@@ -7,94 +7,13 @@ function genLeadId() {
 }
 
 window.__leadId = null;
-window.__shouldSaveContact = false;
 const WEBHOOK_URL = "https://hook.eu2.make.com/1eugiujlu8s20qptl3cgj49bikwkcrqc";
 
 // === Елементи ===
 const form = document.getElementById('leadForm');
 const statusEl = document.getElementById('status');
 const btn = document.getElementById('submitBtn');
-const callCtaLink = document.getElementById('callCta');
-const directPhoneEl = document.getElementById('directPhone');
 const catalogs = document.getElementById('catalogs');
-
-/**
- * Copies the provided phone number to the clipboard using the modern Clipboard API
- * and falls back to a temporary textarea if the API is unavailable.
- */
-async function copyPhoneToClipboard(value) {
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    await navigator.clipboard.writeText(value);
-    return;
-  }
-
-  await new Promise((resolve, reject) => {
-    const textarea = document.createElement('textarea');
-    textarea.value = value;
-    textarea.setAttribute('readonly', '');
-    textarea.style.position = 'fixed';
-    textarea.style.top = '-9999px';
-    textarea.style.opacity = '0';
-    document.body.appendChild(textarea);
-
-    const selection = document.getSelection();
-    const previousRange = selection && selection.rangeCount ? selection.getRangeAt(0) : null;
-
-    textarea.focus();
-    textarea.select();
-
-    try {
-      const ok = document.execCommand('copy');
-      if (!ok) throw new Error('copy command failed');
-      resolve();
-    } catch (err) {
-      reject(err);
-    } finally {
-      document.body.removeChild(textarea);
-      if (selection) {
-        selection.removeAllRanges();
-        if (previousRange) selection.addRange(previousRange);
-      }
-    }
-  });
-}
-
-/**
- * Sets up click handlers for the visible phone number and the submit button actions.
- */
-function initDirectPhoneActions() {
-  if (directPhoneEl) {
-    directPhoneEl.style.cursor = 'pointer';
-    directPhoneEl.addEventListener('click', async () => {
-      const phoneText = directPhoneEl.textContent.trim();
-      if (!phoneText) return;
-      try {
-        await copyPhoneToClipboard(phoneText);
-        alert('Номер скопійовано');
-      } catch (err) {
-        console.warn('Clipboard copy failed', err);
-        alert('Не вдалося скопіювати номер. Спробуйте вручну.');
-      }
-    });
-  }
-
-  if (callCtaLink) {
-    callCtaLink.addEventListener('click', (event) => {
-      // Явно відкриваємо застосунок дзвінків із потрібним номером для посилання "Зателефонувати нам".
-      event.preventDefault();
-      window.location.href = 'tel:+380933332212';
-    });
-  }
-
-  if (btn) {
-    btn.addEventListener('click', () => {
-      // Перед надсиланням пропонуємо користувачу зберегти контакт.
-      // Якщо погоджується — прапорець збережеться до моменту успішної відправки.
-      const shouldSave = window.confirm('Зберегти контакт DOLOTA після відправлення?');
-      window.__shouldSaveContact = !!shouldSave;
-    });
-  }
-}
 
 // === Відправка подій (трекінг) ===
 async function track(eventName, data) {
@@ -380,7 +299,37 @@ const behaviorTracker = initBehaviorTracking();
   });
 })();
 
-initDirectPhoneActions();
+// === Contact Picker API для телефона ===
+(function setupContactPicker() {
+  const btn = document.getElementById('pickPhoneBtn');
+  if (!btn) return;
+  const supported = !!(navigator.contacts && navigator.contacts.select);
+  if (!supported) {
+    btn.style.display = 'none';
+    return;
+  }
+  btn.addEventListener('click', async () => {
+    try {
+      const props = ['name', 'tel', 'email'];
+      const opts = { multiple: false };
+      const results = await navigator.contacts.select(props, opts);
+      if (results && results.length) {
+        const c = results[0];
+        if (c.tel && c.tel.length) document.getElementById('phone').value = c.tel[0];
+        if (c.name && c.name.length) {
+          const parts = String(c.name[0]).trim().split(/\s+/);
+          if (parts.length >= 2) {
+            document.getElementById('firstName').value ||= parts[0];
+            document.getElementById('lastName').value ||= parts.slice(1).join(' ');
+          }
+        }
+        if (c.email && c.email.length) document.getElementById('email').value ||= c.email[0];
+      }
+    } catch (e) {
+      console.warn('Contact picker error', e);
+    }
+  });
+})();
 
 // === Telegram bot deep link ===
 const DEFAULT_TELEGRAM_BOT_URL = 'https://t.me/test421_bot';
@@ -599,7 +548,6 @@ form.addEventListener('submit', async (e) => {
   const v = validate(fd);
   if (!window.__leadId) window.__leadId = genLeadId();
   if (!v.ok) {
-    window.__shouldSaveContact = false;
     statusEl.textContent = v.msg;
     statusEl.className = 'status err';
     return;
@@ -627,15 +575,9 @@ form.addEventListener('submit', async (e) => {
   try {
     await sendContactNow(payload);
     statusEl.textContent = 'Дякуємо! Дані успішно надіслані.';
-    // autoOpenVCard(meta); // Відключено, щоб після форми не відкривався VCF-файл.
+    autoOpenVCard(meta);
     statusEl.className = 'status ok';
     saveVisitor(payload);
-    if (window.__shouldSaveContact) {
-      // Якщо користувач погодився, пропонуємо зберегти контакт одразу після успішної відправки.
-      const vcf = buildVCard(meta);
-      triggerVcfDownload(vcf);
-      window.__shouldSaveContact = false;
-    }
     document.getElementById('afterSubmit').style.display = 'block';
     catalogs.style.display = 'block';
     catalogs.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -675,7 +617,6 @@ form.addEventListener('submit', async (e) => {
     statusEl.textContent = 'Помилка відправлення. Спробуйте ще раз або перевірте інтернет.';
     statusEl.className = 'status err';
   } finally {
-    window.__shouldSaveContact = false;
     btn.disabled = false;
     btn.textContent = 'Надіслати';
   }
