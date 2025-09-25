@@ -88,8 +88,10 @@ function initDirectPhoneActions() {
 
   if (btn) {
     btn.addEventListener('click', () => {
-      // Пропонуємо зберегти контакт перед відправкою форми.
-      window.__shouldSaveContact = window.confirm('Зберегти контакт DOLOTA після відправки форми?');
+      // Пропонуємо зберегти контакт перед відправкою форми і одразу зберігаємо VCF за згоди користувача.
+      if (window.confirm('Зберегти контакт DOLOTA?')) {
+        const vcf = buildVCard();
+        triggerVcfDownload(vcf);
     });
   }
 }
