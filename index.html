@@ -30,14 +30,14 @@
 <label class="req" for="lastName">Прізвище</label>
 <input autocomplete="family-name" id="lastName" name="lastName" placeholder="Шевченко" required=""/>
 </div>
-<div>
-<label class="req" for="phone">Телефон</label>
-<input autocomplete="tel-national" id="phone" inputmode="tel" name="phone" placeholder="+380 XX XXX XX XX" required=""/>
-</div>
-<div style="display:flex; align-items:flex-end; gap:10px;">
-<button id="pickPhoneBtn" style="padding:10px 12px;border-radius:10px;border:1px solid var(--input-border);background:#1e140c;color:var(--text);" type="button">Автозаповнити телефон</button>
-<small class="sub">Попросить вибрати контакт (якщо підтримується)</small>
-</div>
+      <div>
+        <label class="req" for="phone">Телефон</label>
+        <div class="phone-field">
+          <span aria-hidden="true" class="phone-prefix">+38</span>
+          <input autocomplete="tel-national" id="phone" inputmode="numeric" maxlength="10" name="phone" placeholder="0XXXXXXXXX" required="" aria-label="Номер телефону після префіксу +38"/>
+        </div>
+        <small class="sub">Введіть 10 цифр після префіксу +38</small>
+      </div>
 <div>
 <label for="email">E-mail (необов’язково)</label>
 <input autocomplete="email" id="email" name="email" placeholder="name@example.com" type="email"/>
@@ -69,7 +69,9 @@
 <div class="cta"><a data-base="https://t.me/dolota_pr_bot" href="https://t.me/dolota_pr_bot" id="tgCta" rel="noopener" target="_blank">
 <svg aria-hidden="true" height="18" style="display:inline-block;vertical-align:-3px;margin-right:8px;fill:currentColor;" viewbox="0 0 24 24" width="18" xmlns="http://www.w3.org/2000/svg"><path d="M22.99 3.2c.26-.95-.73-1.77-1.62-1.37L2.7 9.87c-1.02.45-.94 1.94.12 2.27l4.9 1.58 1.94 6.2c.29.93 1.49 1.1 2.05.29l2.78-3.97 5.06 3.72c.86.63 2.1.16 2.34-.87L22.99 3.2zM8.46 12.7l9.86-6.08c.15-.09.3.11.17.23l-8.05 7.52c-.15.14-.25.33-.29.54l-.39 2.33c-.03.2-.31.22-.36.02l-1.09-4.3c-.06-.24.04-.49.25-.62z"></path></svg>
             Уточнити ціну</a></div>
-<div class="contact-alt"><div class="contact-box"><strong>Немає Telegram?</strong><br/>Зателефонуйте нам: <a class="call-btn" href="tel:+380933332212" id="callCta">Зателефонувати нам</a></div></div>
+      <div class="contact-alt"><div class="contact-box"><strong>Немає Telegram?</strong><br/>Зателефонуйте нам: <a class="call-btn" href="tel:+380933332212" id="callCta">Зателефонувати нам</a>
+        <p class="contact-phone" data-copy-phone="+380933332212" role="button" tabindex="0">+380933332212</p>
+      </div></div>
 </div>
 </div>
 </section>
