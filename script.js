@@ -13,7 +13,80 @@ const WEBHOOK_URL = "https://hook.eu2.make.com/1eugiujlu8s20qptl3cgj49bikwkcrqc"
 const form = document.getElementById('leadForm');
 const statusEl = document.getElementById('status');
 const btn = document.getElementById('submitBtn');
+const directPhoneEl = document.getElementById('directPhone');
 const catalogs = document.getElementById('catalogs');
+const PHONE_TEL_LINK = 'tel:+380933332212';
+
+/**
+ * Copies the provided phone number to the clipboard using the modern Clipboard API
+ * and falls back to a temporary textarea if the API is unavailable.
+ */
+async function copyPhoneToClipboard(value) {
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+
+  await new Promise((resolve, reject) => {
+    const textarea = document.createElement('textarea');
+    textarea.value = value;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'fixed';
+    textarea.style.top = '-9999px';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+
+    const selection = document.getSelection();
+    const previousRange = selection && selection.rangeCount ? selection.getRangeAt(0) : null;
+
+    textarea.focus();
+    textarea.select();
+
+    try {
+      const ok = document.execCommand('copy');
+      if (!ok) throw new Error('copy command failed');
+      resolve();
+    } catch (err) {
+      reject(err);
+    } finally {
+      document.body.removeChild(textarea);
+      if (selection) {
+        selection.removeAllRanges();
+        if (previousRange) selection.addRange(previousRange);
+      }
+    }
+  });
+}
+
+/**
+ * Sets up click handlers for the visible phone number and the submit button actions.
+ */
+function initDirectPhoneActions() {
+  if (directPhoneEl) {
+    directPhoneEl.style.cursor = 'pointer';
+    directPhoneEl.addEventListener('click', async () => {
+      const phoneText = directPhoneEl.textContent.trim();
+      if (!phoneText) return;
+      try {
+        await copyPhoneToClipboard(phoneText);
+        alert('Номер скопійовано');
+      } catch (err) {
+        console.warn('Clipboard copy failed', err);
+        alert('Не вдалося скопіювати номер. Спробуйте вручну.');
+      }
+    });
+  }
+
+  if (btn) {
+    btn.addEventListener('click', () => {
+      try {
+        window.location.href = PHONE_TEL_LINK;
+      } catch (e) {
+        window.open(PHONE_TEL_LINK, '_self');
+      }
+    });
+  }
+}
 
 // === Відправка подій (трекінг) ===
 async function track(eventName, data) {
@@ -299,37 +372,7 @@ const behaviorTracker = initBehaviorTracking();
   });
 })();
 
-// === Contact Picker API для телефона ===
-(function setupContactPicker() {
-  const btn = document.getElementById('pickPhoneBtn');
-  if (!btn) return;
-  const supported = !!(navigator.contacts && navigator.contacts.select);
-  if (!supported) {
-    btn.style.display = 'none';
-    return;
-  }
-  btn.addEventListener('click', async () => {
-    try {
-      const props = ['name', 'tel', 'email'];
-      const opts = { multiple: false };
-      const results = await navigator.contacts.select(props, opts);
-      if (results && results.length) {
-        const c = results[0];
-        if (c.tel && c.tel.length) document.getElementById('phone').value = c.tel[0];
-        if (c.name && c.name.length) {
-          const parts = String(c.name[0]).trim().split(/\s+/);
-          if (parts.length >= 2) {
-            document.getElementById('firstName').value ||= parts[0];
-            document.getElementById('lastName').value ||= parts.slice(1).join(' ');
-          }
-        }
-        if (c.email && c.email.length) document.getElementById('email').value ||= c.email[0];
-      }
-    } catch (e) {
-      console.warn('Contact picker error', e);
-    }
-  });
-})();
+initDirectPhoneActions();
 
 // === Telegram bot deep link ===
 const DEFAULT_TELEGRAM_BOT_URL = 'https://t.me/test421_bot';
