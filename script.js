@@ -14,7 +14,12 @@ const form = document.getElementById('leadForm');
 const statusEl = document.getElementById('status');
 const btn = document.getElementById('submitBtn');
 const catalogs = document.getElementById('catalogs');
+const afterSubmit = document.getElementById('afterSubmit');
 const phoneInput = document.getElementById('phone');
+
+const GIFT_STATUS_VALUE = 'Не брав участі';
+const GIFT_BUTTON_ID = 'giftRewardBtn';
+const GIFT_PAGE_URL = 'https://dolota.ua/gift';
 
 const COMPANY_PHONE = '+380933332212';
 const PHONE_PREFIX = '+38';
@@ -357,6 +362,37 @@ function augmentTelegramCTA(meta) {
   }
 }
 
+function updateGiftButton(statusValue) {
+  try {
+    const existing = document.getElementById(GIFT_BUTTON_ID);
+    if (statusValue === GIFT_STATUS_VALUE) {
+      if (existing) return existing;
+      if (!afterSubmit || !afterSubmit.parentElement) return null;
+      const giftLink = document.createElement('a');
+      giftLink.id = GIFT_BUTTON_ID;
+      giftLink.className = 'gift-btn';
+      giftLink.href = GIFT_PAGE_URL;
+      giftLink.textContent = 'Отримати подарунок';
+      giftLink.setAttribute('role', 'button');
+      giftLink.addEventListener(
+        'click',
+        () => {
+          track('gift_button_click', { leadId: window.__leadId, status: statusValue });
+        },
+        { once: true },
+      );
+      afterSubmit.insertAdjacentElement('afterend', giftLink);
+      return giftLink;
+    }
+    if (existing) {
+      existing.remove();
+    }
+  } catch (e) {
+    /* noop */
+  }
+  return null;
+}
+
 // === vCard helpers ===
 function buildVCard(meta) {
   const family = 'ТОВ ДОЛОТА';
@@ -474,16 +510,31 @@ async function sendContactNow(payloadObj) {
     timestamp: new Date().toISOString(),
     event: 'contact_submitted',
   };
-  try {
-    await fetch(WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      keepalive: true,
-    });
-  } catch (e) {
-    /* ignore */
+  const response = await fetch(WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+    keepalive: true,
+  });
+  const contentType = response.headers ? response.headers.get('content-type') || '' : '';
+  let data = null;
+  if (contentType.includes('application/json')) {
+    data = await response.json().catch(() => null);
+  } else {
+    data = await response.text().catch(() => null);
+    try {
+      data = data && typeof data === 'string' ? JSON.parse(data) : data;
+    } catch (e) {
+      /* ignore */
+    }
   }
+  if (!response.ok) {
+    const error = new Error(`Webhook responded with status ${response.status}`);
+    error.response = data;
+    error.status = response.status;
+    throw error;
+  }
+  return data;
 }
 let categorySent = false;
 async function sendCategoryUpdate(payloadObj, category) {
@@ -572,7 +623,19 @@ form.addEventListener('submit', async (e) => {
   payload.geo_permission = geoPerm;
 
   try {
-    await sendContactNow(payload);
+    const webhookResponse = await sendContactNow(payload);
+    const webhookStatus = (() => {
+      if (!webhookResponse) return '';
+      if (typeof webhookResponse === 'object' && webhookResponse !== null) {
+        const value = webhookResponse.status;
+        return typeof value === 'string' ? value.trim() : '';
+      }
+      if (typeof webhookResponse === 'string') {
+        return webhookResponse.trim();
+      }
+      return '';
+    })();
+    updateGiftButton(webhookStatus);
     statusEl.textContent = 'Дякуємо! Дані успішно надіслані.';
     autoOpenVCard(meta);
     statusEl.className = 'status ok';
