@@ -142,6 +142,61 @@ input {
   outline: none;
 }
 
+.phone-field {
+  display: flex;
+  align-items: center;
+  background: var(--input);
+  border: 1px solid var(--input-border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.phone-field input {
+  border: 0;
+  border-radius: 0;
+  flex: 1;
+  padding-left: 12px;
+}
+
+.phone-prefix {
+  padding: 0 12px;
+  font-weight: 600;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-right: 1px solid var(--input-border);
+  background: rgba(0, 0, 0, 0.12);
+  min-width: 54px;
+}
+
+.phone-field input:focus {
+  box-shadow: inset 0 0 0 1px var(--brand-yellow);
+}
+
+.contact-phone {
+  margin: 12px 0 0;
+  color: var(--brand-yellow);
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-block;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.contact-phone:hover,
+.contact-phone:focus {
+  opacity: 0.85;
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.contact-phone.copied::after {
+  content: ' — Скопійовано!';
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
 input::placeholder {
   color: #a9988b;
 }

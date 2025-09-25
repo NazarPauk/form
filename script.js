@@ -14,6 +14,27 @@ const form = document.getElementById('leadForm');
 const statusEl = document.getElementById('status');
 const btn = document.getElementById('submitBtn');
 const catalogs = document.getElementById('catalogs');
+const phoneInput = document.getElementById('phone');
+
+const COMPANY_PHONE = '+380933332212';
+const PHONE_PREFIX = '+38';
+const PHONE_DIGITS_REQUIRED = 10;
+
+function sanitizePhoneDigits(raw = '') {
+  return String(raw)
+    .replace(/\D/g, '')
+    .slice(0, PHONE_DIGITS_REQUIRED);
+}
+
+if (phoneInput) {
+  const enforceDigits = () => {
+    const digits = sanitizePhoneDigits(phoneInput.value);
+    phoneInput.value = digits;
+  };
+  enforceDigits();
+  phoneInput.addEventListener('input', enforceDigits);
+  phoneInput.addEventListener('blur', enforceDigits);
+}
 
 // === Відправка подій (трекінг) ===
 async function track(eventName, data) {
@@ -294,39 +315,13 @@ const behaviorTracker = initBehaviorTracking();
     const v = p.get(q);
     if (v) {
       const el = document.getElementById(id);
-      if (el && !el.value) el.value = v;
-    }
-  });
-})();
-
-// === Contact Picker API для телефона ===
-(function setupContactPicker() {
-  const btn = document.getElementById('pickPhoneBtn');
-  if (!btn) return;
-  const supported = !!(navigator.contacts && navigator.contacts.select);
-  if (!supported) {
-    btn.style.display = 'none';
-    return;
-  }
-  btn.addEventListener('click', async () => {
-    try {
-      const props = ['name', 'tel', 'email'];
-      const opts = { multiple: false };
-      const results = await navigator.contacts.select(props, opts);
-      if (results && results.length) {
-        const c = results[0];
-        if (c.tel && c.tel.length) document.getElementById('phone').value = c.tel[0];
-        if (c.name && c.name.length) {
-          const parts = String(c.name[0]).trim().split(/\s+/);
-          if (parts.length >= 2) {
-            document.getElementById('firstName').value ||= parts[0];
-            document.getElementById('lastName').value ||= parts.slice(1).join(' ');
-          }
-        }
-        if (c.email && c.email.length) document.getElementById('email').value ||= c.email[0];
+      if (!el || el.value) return;
+      if (id === 'phone') {
+        const digits = sanitizePhoneDigits(String(v).trim().replace(/^\+?38/, ''));
+        el.value = digits;
+      } else {
+        el.value = v;
       }
-    } catch (e) {
-      console.warn('Contact picker error', e);
     }
   });
 })();
@@ -368,7 +363,7 @@ function buildVCard(meta) {
   const given = 'Відділ';
   const additional = 'Продажів';
   const org = 'ТОВ "ДОЛОТА"';
-  const tel = '+380933332212';
+  const tel = COMPANY_PHONE;
   const site = 'https://dolota.ua';
   const email = 'info@dolota.ua';
   const chatbot = 'https://t.me/test421_bot';
@@ -438,13 +433,13 @@ function autoOpenVCard(meta) {
 
 // === Валідація форми та нормалізація ===
 function normalizePhone(raw) {
-  if (!raw) return { ok: false, e164: null, cleaned: '' };
-  const s = String(raw).trim();
-  const hasPlus = s.startsWith('+');
-  const digits = s.replace(/[\s\-().]/g, '').replace(/^\+/, '');
-  if (!/^\d{7,15}$/.test(digits)) return { ok: false, e164: null, cleaned: digits };
-  const e164 = hasPlus ? '+' + digits : null;
-  return { ok: true, e164, cleaned: digits };
+  const cleaned = String(raw || '').replace(/\D/g, '');
+  if (cleaned.length !== PHONE_DIGITS_REQUIRED) {
+    return { ok: false, e164: null, cleaned: cleaned };
+  }
+  const digits = cleaned.slice(0, PHONE_DIGITS_REQUIRED);
+  const full = PHONE_PREFIX + digits;
+  return { ok: true, e164: full, cleaned: digits, display: full };
 }
 function isValidEmail(raw) {
   if (!raw) return true;
@@ -462,7 +457,7 @@ function validate(fd) {
   if (!phoneCheck.ok)
     return {
       ok: false,
-      msg: 'Невірний номер телефону. Введіть міжнародний формат (наприклад, +380..., +1...). Мінімум 7, максимум 15 цифр.',
+      msg: `Невірний номер телефону. Введіть рівно ${PHONE_DIGITS_REQUIRED} цифр після префіксу +38.`,
     };
   if (!isValidEmail(email)) return { ok: false, msg: 'Невірний формат e‑mail.' };
   return { ok: true, phoneCheck };
@@ -556,7 +551,11 @@ form.addEventListener('submit', async (e) => {
   btn.textContent = 'Запитуємо геолокацію…';
 
   const payload = Object.fromEntries(fd.entries());
-  if (v.phoneCheck && v.phoneCheck.e164) payload.phone_e164 = v.phoneCheck.e164;
+  if (v.phoneCheck) {
+    payload.phone = v.phoneCheck.display || payload.phone;
+    payload.phone_digits = v.phoneCheck.cleaned;
+    if (v.phoneCheck.e164) payload.phone_e164 = v.phoneCheck.e164;
+  }
   const meta = await buildUtm(); // тут чекаємо підтвердження/позицію
   const geoPerm = await getGeoPermissionState();
   const tech = await collectTech();
@@ -650,3 +649,59 @@ function updateOnlineStatus() {
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 document.addEventListener('DOMContentLoaded', updateOnlineStatus);
+
+(function initCallCta() {
+  const callBtn = document.getElementById('callCta');
+  if (!callBtn) return;
+  const telUrl = `tel:${COMPANY_PHONE}`;
+  callBtn.setAttribute('href', telUrl);
+  callBtn.addEventListener(
+    'click',
+    () => {
+      try {
+        callBtn.setAttribute('href', telUrl);
+        window.location.href = telUrl;
+      } catch (e) {}
+    },
+    { passive: true },
+  );
+})();
+
+(function initCopyPhone() {
+  const copyEl = document.querySelector('[data-copy-phone]');
+  if (!copyEl) return;
+  const number = copyEl.getAttribute('data-copy-phone') || COMPANY_PHONE;
+  async function copyToClipboard() {
+    let success = false;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try {
+        await navigator.clipboard.writeText(number);
+        success = true;
+      } catch (e) {}
+    }
+    if (!success) {
+      try {
+        const tmp = document.createElement('input');
+        tmp.value = number;
+        document.body.appendChild(tmp);
+        tmp.select();
+        success = document.execCommand('copy');
+        tmp.remove();
+      } catch (e) {}
+    }
+    if (success) {
+      copyEl.classList.add('copied');
+      setTimeout(() => copyEl.classList.remove('copied'), 2000);
+    }
+  }
+  const triggerCopy = (event) => {
+    event.preventDefault();
+    copyToClipboard();
+  };
+  copyEl.addEventListener('click', triggerCopy);
+  copyEl.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      triggerCopy(event);
+    }
+  });
+})();
