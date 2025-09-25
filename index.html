@@ -57,6 +57,16 @@
 <button id="saveVCardBtn">Зберегти контакт DOLOTA</button>
 <div class="sub">Натисніть, щоб додати контакт у телефон і повернутися до вибору каталогу.</div>
 </div>
+<div class="modal" id="submissionModal" aria-hidden="true">
+  <div class="modal__backdrop" id="submissionModalBackdrop"></div>
+  <div aria-labelledby="submissionModalTitle" class="modal__content" role="dialog">
+    <button aria-label="Закрити" class="modal__close" id="submissionModalClose" type="button">×</button>
+    <h3 class="modal__title" id="submissionModalTitle">Статус заявки</h3>
+    <p class="modal__description" id="submissionStatusText"></p>
+    <p class="modal__description" id="submissionTelText"></p>
+    <button class="modal__gift-btn" id="claimGiftBtn" type="button">Отримати подарунок</button>
+  </div>
+</div>
 <div class="catalogs" id="catalogs">
 <h3>Каталоги та матеріали</h3>
 <ul>
