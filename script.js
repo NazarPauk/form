@@ -88,10 +88,10 @@ function initDirectPhoneActions() {
 
   if (btn) {
     btn.addEventListener('click', () => {
-      // Пропонуємо зберегти контакт перед відправкою форми і одразу зберігаємо VCF за згоди користувача.
-      if (window.confirm('Зберегти контакт DOLOTA?')) {
-        const vcf = buildVCard();
-        triggerVcfDownload(vcf);
+      // Перед надсиланням пропонуємо користувачу зберегти контакт.
+      // Якщо погоджується — прапорець збережеться до моменту успішної відправки.
+      const shouldSave = window.confirm('Зберегти контакт DOLOTA після відправлення?');
+      window.__shouldSaveContact = !!shouldSave;
     });
   }
 }
@@ -599,6 +599,7 @@ form.addEventListener('submit', async (e) => {
   const v = validate(fd);
   if (!window.__leadId) window.__leadId = genLeadId();
   if (!v.ok) {
+    window.__shouldSaveContact = false;
     statusEl.textContent = v.msg;
     statusEl.className = 'status err';
     return;
