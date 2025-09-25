@@ -17,6 +17,15 @@ const catalogs = document.getElementById('catalogs');
 const phoneInput = document.getElementById('phone');
 const catalogGiftBtn = document.getElementById('catalogGiftBtn');
 let lastSubmissionStatusValue = null;
+const submissionModal = document.getElementById('submissionModal');
+const submissionModalBackdrop = document.getElementById('submissionModalBackdrop');
+const submissionModalClose = document.getElementById('submissionModalClose');
+const submissionStatusText = document.getElementById('submissionStatusText');
+const submissionTelText = document.getElementById('submissionTelText');
+const claimGiftBtn = document.getElementById('claimGiftBtn');
+let lastSubmissionStatusValue = null;
+let originalBodyOverflow = '';
+
 
 const COMPANY_PHONE = '+380933332212';
 const PHONE_PREFIX = '+38';
@@ -112,6 +121,7 @@ function normalizeStatusData(raw, payload) {
   };
 }
 
+
 function updateGiftButton(statusValue) {
   if (!catalogGiftBtn) return;
   const normalized = typeof statusValue === 'string' ? statusValue.trim().toLowerCase() : '';
@@ -129,6 +139,75 @@ if (catalogGiftBtn) {
     track('gift_request_click', { leadId: window.__leadId || null, status: lastSubmissionStatusValue || null });
   });
   updateGiftButton(null);
+
+function closeSubmissionModal() {
+  if (!submissionModal) return;
+  submissionModal.classList.remove('is-open');
+  submissionModal.setAttribute('aria-hidden', 'true');
+  if (document.body) {
+    document.body.style.overflow = originalBodyOverflow || '';
+  }
+  lastSubmissionStatusValue = null;
+  if (claimGiftBtn) {
+    claimGiftBtn.disabled = false;
+    claimGiftBtn.textContent = 'Отримати подарунок';
+  }
+}
+
+function openSubmissionModal(data) {
+  if (!submissionModal) return;
+  const statusValue = data && typeof data.status === 'string' ? data.status.trim() : null;
+  const telValue = data && typeof data.tel === 'string' ? data.tel.trim() : null;
+  if (submissionStatusText) {
+    submissionStatusText.textContent = statusValue
+      ? `Статус заявки: ${statusValue}`
+      : 'Статус заявки наразі невідомий. Наш менеджер зв’яжеться з вами найближчим часом.';
+  }
+  if (submissionTelText) {
+    if (telValue) {
+      submissionTelText.textContent = `Телефон: ${telValue}`;
+      submissionTelText.style.display = '';
+    } else {
+      submissionTelText.textContent = '';
+      submissionTelText.style.display = 'none';
+    }
+  }
+  if (claimGiftBtn) {
+    const normalized = statusValue ? statusValue.toLowerCase() : '';
+    const showGift = !['отримано', 'виграв'].includes(normalized);
+    claimGiftBtn.style.display = showGift ? 'inline-flex' : 'none';
+    claimGiftBtn.disabled = false;
+    claimGiftBtn.textContent = 'Отримати подарунок';
+  }
+  submissionModal.classList.add('is-open');
+  submissionModal.setAttribute('aria-hidden', 'false');
+  if (document.body) {
+    originalBodyOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+  }
+  lastSubmissionStatusValue = statusValue || null;
+}
+
+if (submissionModalClose) {
+  submissionModalClose.addEventListener('click', closeSubmissionModal);
+}
+if (submissionModalBackdrop) {
+  submissionModalBackdrop.addEventListener('click', closeSubmissionModal);
+}
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && submissionModal && submissionModal.classList.contains('is-open')) {
+    closeSubmissionModal();
+  }
+});
+if (claimGiftBtn) {
+  claimGiftBtn.addEventListener('click', () => {
+    claimGiftBtn.disabled = true;
+    claimGiftBtn.textContent = 'Запит на подарунок відправлено';
+    if (submissionStatusText) {
+      submissionStatusText.textContent = 'Дякуємо! Наш менеджер підготує для вас подарунок.';
+    }
+    track('gift_request_click', { leadId: window.__leadId || null, status: lastSubmissionStatusValue || null });
+  });
 }
 
 // === UTM/Geo helpers ===
@@ -627,6 +706,7 @@ form.addEventListener('submit', async (e) => {
   e.preventDefault();
   statusEl.textContent = '';
   updateGiftButton(null);
+
   const fd = new FormData(form);
   const v = validate(fd);
   if (!window.__leadId) window.__leadId = genLeadId();
