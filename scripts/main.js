@@ -7,6 +7,7 @@ function genLeadId() {
 }
 
 window.__leadId = null;
+window.__leadPhoneDigits = null;
 const WEBHOOK_URL = "https://hook.eu2.make.com/1eugiujlu8s20qptl3cgj49bikwkcrqc";
 
 // === Елементи ===
@@ -19,7 +20,7 @@ const phoneInput = document.getElementById('phone');
 
 const GIFT_STATUS_VALUE = 'Не брав участі';
 const GIFT_BUTTON_ID = 'giftRewardBtn';
-const GIFT_PAGE_URL = 'https://dolota.ua/gift';
+const GIFT_PAGE_URL = 'pages/phone-confirmation.html';
 
 const COMPANY_PHONE = '+380933332212';
 const PHONE_PREFIX = '+38';
@@ -362,16 +363,38 @@ function augmentTelegramCTA(meta) {
   }
 }
 
+function buildGiftUrl() {
+  try {
+    if (!window.__leadId) return null;
+    const digits = window.__leadPhoneDigits || (phoneInput ? sanitizePhoneDigits(phoneInput.value) : '');
+    if (!digits) return null;
+    const url = new URL(GIFT_PAGE_URL, location.href);
+    url.searchParams.set('leadId', window.__leadId);
+    url.searchParams.set('phone', digits);
+    const token = btoa(`${digits}:${window.__leadId}`);
+    url.searchParams.set('token', token);
+    return url.toString();
+  } catch (e) {
+    return null;
+  }
+}
+
 function updateGiftButton(statusValue) {
   try {
     const existing = document.getElementById(GIFT_BUTTON_ID);
     if (statusValue === GIFT_STATUS_VALUE) {
-      if (existing) return existing;
+      const href = buildGiftUrl();
+      if (!href) return existing || null;
+      if (existing) {
+        existing.href = href;
+        existing.classList.remove('disabled');
+        return existing;
+      }
       if (!afterSubmit || !afterSubmit.parentElement) return null;
       const giftLink = document.createElement('a');
       giftLink.id = GIFT_BUTTON_ID;
       giftLink.className = 'gift-btn';
-      giftLink.href = GIFT_PAGE_URL;
+      giftLink.href = href;
       giftLink.textContent = 'Отримати подарунок';
       giftLink.setAttribute('role', 'button');
       giftLink.addEventListener(
@@ -607,6 +630,7 @@ form.addEventListener('submit', async (e) => {
     payload.phone_digits = v.phoneCheck.cleaned;
     if (v.phoneCheck.e164) payload.phone_e164 = v.phoneCheck.e164;
   }
+  window.__leadPhoneDigits = payload.phone_digits || sanitizePhoneDigits(payload.phone || '');
   const meta = await buildUtm(); // тут чекаємо підтвердження/позицію
   const geoPerm = await getGeoPermissionState();
   const tech = await collectTech();
