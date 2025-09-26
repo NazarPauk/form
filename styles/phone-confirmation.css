@@ -1,0 +1,61 @@
+.card {
+  max-width: 560px;
+}
+
+.confirmation-container .card {
+  text-align: left;
+}
+
+.confirmation-block input[readonly] {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  cursor: not-allowed;
+}
+
+.confirmation-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.confirmation-actions .status {
+  flex: 1;
+}
+
+.code-entry {
+  margin-top: 24px;
+  display: grid;
+  gap: 12px;
+}
+
+.code-entry[hidden] {
+  display: none;
+}
+
+.code-entry input {
+  font-size: 1.2rem;
+  letter-spacing: 0.2rem;
+  text-align: center;
+}
+
+#confirmBtn[disabled],
+#sendSmsBtn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.back-link {
+  margin-top: 24px;
+  text-align: center;
+}
+
+.back-link a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.back-link a:hover {
+  text-decoration: underline;
+}
