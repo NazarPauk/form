@@ -32,7 +32,7 @@
       </div>
       <div id="codeSection" class="code-section hidden" aria-hidden="true">
         <label for="codeInput">Введіть код із SMS</label>
-        <input id="codeInput" type="text" inputmode="numeric" maxlength="4" autocomplete="one-time-code" placeholder="XXXX" aria-label="4-значний код підтвердження" />
+        <input id="codeInput" type="text" inputmode="numeric" maxlength="4" autocomplete="one-time-code" patern="[0-9]{4}" placeholder="XXXX" aria-label="4-значний код підтвердження" />
         <div class="actions">
           <button id="verifyCodeBtn" type="button">Підтвердити</button>
         </div>
