@@ -10,6 +10,8 @@ const codeInput = document.getElementById('codeInput');
 const verifyCodeBtn = document.getElementById('verifyCodeBtn');
 const resendCodeWrapper = document.getElementById('resendCodeWrapper');
 const resendCodeLink = document.getElementById('resendCodeLink');
+const loadingIndicator = document.getElementById('loadingIndicator');
+const confirmationContent = document.getElementById('confirmationContent');
 
 const statusEl = document.getElementById('confirmStatus');
 
@@ -73,6 +75,30 @@ function showSendCodeButton() {
   if (!sendCodeBtn) return;
   sendCodeBtn.classList.remove('hidden');
   sendCodeBtn.removeAttribute('aria-hidden');
+}
+
+function showLoader() {
+  if (!loadingIndicator) return;
+  loadingIndicator.classList.remove('hidden');
+  loadingIndicator.setAttribute('aria-hidden', 'false');
+}
+
+function hideLoader() {
+  if (!loadingIndicator) return;
+  loadingIndicator.classList.add('hidden');
+  loadingIndicator.setAttribute('aria-hidden', 'true');
+}
+
+function showContent() {
+  if (!confirmationContent) return;
+  confirmationContent.classList.remove('hidden');
+  confirmationContent.setAttribute('aria-hidden', 'false');
+}
+
+function hideContent() {
+  if (!confirmationContent) return;
+  confirmationContent.classList.add('hidden');
+  confirmationContent.setAttribute('aria-hidden', 'true');
 }
 
 async function sendVerificationCode({ resend = false, displayValue }) {
@@ -165,6 +191,9 @@ function handleInitialStatus(statusValue, displayValue) {
   const receivedMessage = 'Подарунок вже отримано. Якщо маєте питання — зверніться до менеджера.';
 
   if (normalized === 'виграв') {
+
+    hideContent();
+
     hideSendCodeButton();
     toggleCodeSection(false);
     toggleResendLink(false);
@@ -175,6 +204,9 @@ function handleInitialStatus(statusValue, displayValue) {
   }
 
   if (normalized === 'отримав') {
+
+    hideContent();
+
     hideSendCodeButton();
     toggleCodeSection(false);
     toggleResendLink(false);
@@ -185,6 +217,9 @@ function handleInitialStatus(statusValue, displayValue) {
   }
 
   if (normalized === 'підтверджений') {
+
+    hideContent();
+
     hideSendCodeButton();
     toggleCodeSection(false);
     toggleResendLink(false);
@@ -203,6 +238,8 @@ function handleInitialStatus(statusValue, displayValue) {
   }
 
   if (normalized === 'не брав участі' || normalized === 'не підтверджений' || normalized === '') {
+
+    showContent();
     showSendCodeButton();
     toggleCodeSection(false);
     toggleResendLink(false);
@@ -210,6 +247,9 @@ function handleInitialStatus(statusValue, displayValue) {
     setStatus('Натисніть «Надіслати код підтвердження», щоб продовжити.', '');
     return true;
   }
+
+
+  showContent();
 
   showSendCodeButton();
   toggleCodeSection(false);
@@ -223,6 +263,9 @@ async function requestInitialStatus(displayValue) {
   if (!context) return;
   let enableSendButton = true;
   try {
+
+    showLoader();
+
     setStatus('Перевіряємо статус участі…');
     if (sendCodeBtn) sendCodeBtn.disabled = true;
     const payload = {
@@ -235,20 +278,29 @@ async function requestInitialStatus(displayValue) {
     enableSendButton = handleInitialStatus(statusValue, displayValue);
   } catch (err) {
     enableSendButton = true;
+
+    showContent();
+
     showSendCodeButton();
     toggleCodeSection(false);
     toggleResendLink(false);
     setStatus('Не вдалося отримати статус участі. Оновіть сторінку або спробуйте пізніше.', 'err');
   } finally {
+
+    hideLoader();
+
     if (sendCodeBtn) sendCodeBtn.disabled = !enableSendButton;
   }
 }
 
 function init() {
   context = parseContext();
+  hideContent();
+  showLoader();
   if (!context || !context.leadId || (!context.phoneDigits && !context.phoneDisplay)) {
     setStatus('Не знайдено даних для підтвердження. Поверніться до форми та натисніть «Отримати подарунок».', 'err');
     if (sendCodeBtn) sendCodeBtn.disabled = true;
+    hideLoader();
     return;
   }
 
