@@ -9,6 +9,7 @@ const codeInput = document.getElementById('codeInput');
 const verifyCodeBtn = document.getElementById('verifyCodeBtn');
 const resendCodeWrapper = document.getElementById('resendCodeWrapper');
 const resendCodeLink = document.getElementById('resendCodeLink');
+
 const statusEl = document.getElementById('confirmStatus');
 
 let context = null;
@@ -48,6 +49,7 @@ function toggleCodeSection(visible) {
     codeSection.setAttribute('aria-hidden', 'true');
   }
 }
+
 
 function toggleResendLink(visible) {
   if (!resendCodeWrapper) return;
@@ -159,6 +161,7 @@ function init() {
   if (sendCodeBtn) {
     sendCodeBtn.addEventListener('click', async () => {
       if (!context) return;
+
       await sendVerificationCode({ resend: false, displayValue });
     });
   }
