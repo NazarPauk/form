@@ -31,6 +31,37 @@ const PHONE_DIGITS_REQUIRED = 10;
 
 let currentGiftContext = null;
 
+function persistGiftContext(payload) {
+  if (!payload) return;
+  const serialized = JSON.stringify(payload);
+  let stored = false;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(GIFT_STORAGE_KEY, serialized);
+      stored = true;
+    }
+  } catch (err) {
+    /* noop */
+  }
+  if (stored) {
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.removeItem(GIFT_STORAGE_KEY);
+      }
+    } catch (err) {
+      /* noop */
+    }
+    return;
+  }
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(GIFT_STORAGE_KEY, serialized);
+    }
+  } catch (err) {
+    /* noop */
+  }
+}
+
 function sanitizePhoneDigits(raw = '') {
   return String(raw)
     .replace(/\D/g, '')
@@ -447,7 +478,7 @@ function updateGiftButton(statusValue) {
             phoneDisplay: display || null,
             telegramLink,
           };
-          sessionStorage.setItem(GIFT_STORAGE_KEY, JSON.stringify(contextPayload));
+          persistGiftContext(contextPayload);
         } catch (err) {
           /* noop */
         }

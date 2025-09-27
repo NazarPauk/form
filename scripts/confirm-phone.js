@@ -17,14 +17,55 @@ const statusEl = document.getElementById('confirmStatus');
 
 let context = null;
 
-function parseContext() {
+function clearStoredContext() {
   try {
-    const raw = sessionStorage.getItem(CONTEXT_KEY);
-    if (!raw) return null;
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(CONTEXT_KEY);
+    }
+  } catch (err) {
+    /* noop */
+  }
+  try {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem(CONTEXT_KEY);
+    }
+  } catch (err) {
+    /* noop */
+  }
+}
+
+function parseContext() {
+  let raw = null;
+  try {
+    if (typeof localStorage !== 'undefined') {
+      raw = localStorage.getItem(CONTEXT_KEY);
+    }
+  } catch (err) {
+    raw = null;
+  }
+
+  if (!raw) {
+    try {
+      if (typeof sessionStorage !== 'undefined') {
+        raw = sessionStorage.getItem(CONTEXT_KEY);
+      }
+    } catch (err) {
+      raw = null;
+    }
+  }
+
+  if (!raw) return null;
+
+  try {
     const data = JSON.parse(raw);
-    if (!data || typeof data !== 'object') return null;
+    if (!data || typeof data !== 'object') {
+      clearStoredContext();
+      return null;
+    }
+    clearStoredContext();
     return data;
   } catch (err) {
+    clearStoredContext();
     return null;
   }
 }
