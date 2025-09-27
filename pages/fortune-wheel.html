@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DOLOTA | Колесо фортуни</title>
+  <meta name="description" content="Колесо фортуни DOLOTA для розіграшу подарунків після підтвердження номера телефону." />
+  <link rel="stylesheet" href="../styles/fortune-wheel.css" />
+</head>
+<body>
+  <div class="container wheel-container">
+    <header>
+      <div class="brand">
+        <a href="https://dolota.ua/" target="_blank" rel="noopener">
+          <img src="../images/logo.png" alt="DOLOTA" />
+        </a>
+        <h1>DOLOTA · Колесо фортуни</h1>
+      </div>
+      <div class="sub">Міжнародна виставка · <span class="ua-flag" title="Ukraine"></span> UA</div>
+    </header>
+    <section class="card wheel-card">
+      <h2>Розіграш подарунків</h2>
+      <p class="sub" id="phoneInfo">Підтверджений номер:</p>
+      <div class="wheel-wrapper">
+        <div class="wheel-graphic" id="wheelGraphic">
+          <div class="wheel-face idle-spin" id="wheelFace">
+            <canvas id="wheelCanvas" width="420" height="420" aria-hidden="true"></canvas>
+          </div>
+          <button id="spinBtn" type="button" class="spin-btn">Крутити колесо</button>
+        </div>
+        <div class="wheel-pointer" aria-hidden="true"></div>
+      </div>
+      <p id="wheelStatus" class="status-message" role="status" aria-live="polite"></p>
+      <div class="back-link">
+        <a href="../index.html">Повернутися до головної форми</a>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal hidden" id="resultModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-content">
+      <button class="modal-close" id="closeModalBtn" type="button" aria-label="Закрити">×</button>
+      <h3 id="modalTitle">Вітаємо!</h3>
+      <p id="modalText">Ви отримали подарунок.</p>
+      <button id="claimPrizeBtn" type="button" class="claim-btn">Отримати виграш</button>
+    </div>
+  </div>
+  <div class="modal-overlay hidden" id="modalOverlay"></div>
+
+  <script src="../scripts/fortune-wheel.js" defer></script>
+</body>
+</html>
