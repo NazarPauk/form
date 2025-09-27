@@ -191,7 +191,9 @@ function handleInitialStatus(statusValue, displayValue) {
   const receivedMessage = 'Подарунок вже отримано. Якщо маєте питання — зверніться до менеджера.';
 
   if (normalized === 'виграв') {
+
     hideContent();
+
     hideSendCodeButton();
     toggleCodeSection(false);
     toggleResendLink(false);
@@ -202,7 +204,9 @@ function handleInitialStatus(statusValue, displayValue) {
   }
 
   if (normalized === 'отримав') {
+
     hideContent();
+
     hideSendCodeButton();
     toggleCodeSection(false);
     toggleResendLink(false);
@@ -213,7 +217,9 @@ function handleInitialStatus(statusValue, displayValue) {
   }
 
   if (normalized === 'підтверджений') {
+
     hideContent();
+
     hideSendCodeButton();
     toggleCodeSection(false);
     toggleResendLink(false);
@@ -232,6 +238,7 @@ function handleInitialStatus(statusValue, displayValue) {
   }
 
   if (normalized === 'не брав участі' || normalized === 'не підтверджений' || normalized === '') {
+
     showContent();
     showSendCodeButton();
     toggleCodeSection(false);
@@ -241,7 +248,9 @@ function handleInitialStatus(statusValue, displayValue) {
     return true;
   }
 
+
   showContent();
+
   showSendCodeButton();
   toggleCodeSection(false);
   toggleResendLink(false);
@@ -254,7 +263,9 @@ async function requestInitialStatus(displayValue) {
   if (!context) return;
   let enableSendButton = true;
   try {
+
     showLoader();
+
     setStatus('Перевіряємо статус участі…');
     if (sendCodeBtn) sendCodeBtn.disabled = true;
     const payload = {
@@ -267,13 +278,17 @@ async function requestInitialStatus(displayValue) {
     enableSendButton = handleInitialStatus(statusValue, displayValue);
   } catch (err) {
     enableSendButton = true;
+
     showContent();
+
     showSendCodeButton();
     toggleCodeSection(false);
     toggleResendLink(false);
     setStatus('Не вдалося отримати статус участі. Оновіть сторінку або спробуйте пізніше.', 'err');
   } finally {
+
     hideLoader();
+
     if (sendCodeBtn) sendCodeBtn.disabled = !enableSendButton;
   }
 }
