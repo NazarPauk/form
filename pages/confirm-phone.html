@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DOLOTA | Підтвердження номера</title>
+  <meta name="description" content="Підтвердження номера телефону для участі у розіграші подарунків DOLOTA." />
+  <link rel="stylesheet" href="../styles/confirm-phone.css" />
+</head>
+<body>
+  <div class="container confirm-container">
+    <header>
+      <div class="brand">
+        <a href="https://dolota.ua/" target="_blank" rel="noopener">
+          <img src="../images/logo.png" alt="DOLOTA" />
+        </a>
+        <h1>DOLOTA · Підтвердження номера</h1>
+      </div>
+      <div class="sub">Міжнародна виставка · <span class="ua-flag" title="Ukraine"></span> UA</div>
+    </header>
+    <section class="card confirm-card">
+      <h2>Підтвердження номера телефону</h2>
+      <p class="sub">
+        Щоб перейти до розіграшу подарунків, підтвердьте номер телефону, який ви залишили у формі.
+      </p>
+      <div class="phone-display">
+        <label for="phoneDisplay">Ваш номер</label>
+        <input id="phoneDisplay" type="text" readonly />
+      </div>
+      <div class="actions">
+        <button id="sendCodeBtn" type="button">Надіслати код підтвердження</button>
+      </div>
+      <div id="codeSection" class="code-section hidden" aria-hidden="true">
+        <label for="codeInput">Введіть код із SMS</label>
+        <input id="codeInput" type="text" inputmode="numeric" maxlength="4" autocomplete="one-time-code" placeholder="XXXX" aria-label="4-значний код підтвердження" />
+        <div class="actions">
+          <button id="verifyCodeBtn" type="button">Підтвердити</button>
+        </div>
+      </div>
+      <p id="confirmStatus" class="status-message" role="status" aria-live="polite"></p>
+      <div class="back-link">
+        <a href="../index.html">Повернутися до головної форми</a>
+      </div>
+    </section>
+  </div>
+  <script src="../scripts/confirm-phone.js" defer></script>
+</body>
+</html>
