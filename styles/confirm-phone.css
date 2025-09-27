@@ -4,12 +4,16 @@ body {
   background: var(--bg);
   color: var(--text);
   min-height: 100vh;
+  min-height: 100dvh;
   margin: 0;
   font-family: 'Inter', 'Segoe UI', sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: calc(24px + env(safe-area-inset-top, 0px))
+    max(16px, env(safe-area-inset-right, 16px))
+    calc(24px + env(safe-area-inset-bottom, 0px))
+    max(16px, env(safe-area-inset-left, 16px));
 }
 
 .confirm-container {
@@ -51,6 +55,7 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .actions button {
@@ -62,6 +67,7 @@ body {
   border-radius: 999px;
   cursor: pointer;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  min-width: 220px;
 }
 
 .actions button:disabled {
@@ -143,6 +149,10 @@ body {
   color: var(--err);
 }
 
+.status-message.warn {
+  color: var(--warn);
+}
+
 .back-link {
   margin-top: 24px;
 }
@@ -157,10 +167,6 @@ body {
 }
 
 @media (max-width: 640px) {
-  body {
-    padding: 16px;
-  }
-
   .confirm-card {
     padding: 24px;
   }
@@ -168,5 +174,34 @@ body {
   .code-section input {
     width: 140px;
     letter-spacing: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    align-items: flex-start;
+  }
+
+  .confirm-card {
+    padding: 20px;
+  }
+
+  .actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .actions button {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .code-section {
+    padding: 16px;
+  }
+
+  .code-section input {
+    width: 120px;
+    letter-spacing: 4px;
   }
 }

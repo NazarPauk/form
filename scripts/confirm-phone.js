@@ -1,4 +1,5 @@
 const WEBHOOK_URL = 'https://hook.eu2.make.com/15sdp8heqq62udgrfmfquv4go2n9cbvs';
+const STATUS_WEBHOOK_URL = 'https://hook.eu2.make.com/frvapm5gb7i4ss8selrcpxnhqei35iit';
 const CONTEXT_KEY = 'dolota_gift_context';
 const VERIFIED_KEY = 'dolota_gift_verified';
 
@@ -131,6 +132,118 @@ async function callWebhook(body) {
   }
 }
 
+async function callStatusWebhook(body) {
+  const response = await fetch(STATUS_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`Status webhook failed with ${response.status}`);
+  }
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    return text;
+  }
+}
+
+function extractStatusValue(response) {
+  if (!response) return '';
+  if (typeof response === 'string') return response;
+  if (typeof response === 'object') {
+    const value = response['статус'] ?? response.status;
+    return typeof value === 'string' ? value : '';
+  }
+  return '';
+}
+
+function handleInitialStatus(statusValue, displayValue) {
+  const normalized = typeof statusValue === 'string' ? statusValue.trim().toLowerCase() : '';
+  const positiveMessage = 'Ви вже виграли подарунок! Для отримання зверніться до менеджера.';
+  const receivedMessage = 'Подарунок вже отримано. Якщо маєте питання — зверніться до менеджера.';
+
+  if (normalized === 'виграв') {
+    hideSendCodeButton();
+    toggleCodeSection(false);
+    toggleResendLink(false);
+    if (sendCodeBtn) sendCodeBtn.disabled = true;
+    sessionStorage.removeItem(VERIFIED_KEY);
+    setStatus(positiveMessage, 'warn');
+    return false;
+  }
+
+  if (normalized === 'отримав') {
+    hideSendCodeButton();
+    toggleCodeSection(false);
+    toggleResendLink(false);
+    if (sendCodeBtn) sendCodeBtn.disabled = true;
+    sessionStorage.removeItem(VERIFIED_KEY);
+    setStatus(receivedMessage, 'ok');
+    return false;
+  }
+
+  if (normalized === 'підтверджений') {
+    hideSendCodeButton();
+    toggleCodeSection(false);
+    toggleResendLink(false);
+    const verifiedPayload = {
+      ...context,
+      phoneDisplay: displayValue,
+      verifiedAt: new Date().toISOString(),
+      preVerified: true,
+    };
+    sessionStorage.setItem(VERIFIED_KEY, JSON.stringify(verifiedPayload));
+    setStatus('Номер вже підтверджено. Відкриваємо колесо фортуни…', 'ok');
+    setTimeout(() => {
+      window.location.replace('fortune-wheel.html');
+    }, 900);
+    return false;
+  }
+
+  if (normalized === 'не брав участі' || normalized === 'не підтверджений' || normalized === '') {
+    showSendCodeButton();
+    toggleCodeSection(false);
+    toggleResendLink(false);
+    sessionStorage.removeItem(VERIFIED_KEY);
+    setStatus('Натисніть «Надіслати код підтвердження», щоб продовжити.', '');
+    return true;
+  }
+
+  showSendCodeButton();
+  toggleCodeSection(false);
+  toggleResendLink(false);
+  sessionStorage.removeItem(VERIFIED_KEY);
+  setStatus('', '');
+  return true;
+}
+
+async function requestInitialStatus(displayValue) {
+  if (!context) return;
+  let enableSendButton = true;
+  try {
+    setStatus('Перевіряємо статус участі…');
+    if (sendCodeBtn) sendCodeBtn.disabled = true;
+    const payload = {
+      phone: displayValue,
+      phoneDigits: context.phoneDigits || null,
+      leadId: context.leadId || null,
+    };
+    const response = await callStatusWebhook(payload);
+    const statusValue = extractStatusValue(response);
+    enableSendButton = handleInitialStatus(statusValue, displayValue);
+  } catch (err) {
+    enableSendButton = true;
+    showSendCodeButton();
+    toggleCodeSection(false);
+    toggleResendLink(false);
+    setStatus('Не вдалося отримати статус участі. Оновіть сторінку або спробуйте пізніше.', 'err');
+  } finally {
+    if (sendCodeBtn) sendCodeBtn.disabled = !enableSendButton;
+  }
+}
+
 function init() {
   context = parseContext();
   if (!context || !context.leadId || (!context.phoneDigits && !context.phoneDisplay)) {
@@ -143,6 +256,12 @@ function init() {
   if (phoneInput) {
     phoneInput.value = displayValue;
   }
+
+  showSendCodeButton();
+  toggleCodeSection(false);
+  toggleResendLink(false);
+  if (sendCodeBtn) sendCodeBtn.disabled = true;
+  requestInitialStatus(displayValue);
 
   if (codeInput) {
     codeInput.addEventListener('input', () => {
