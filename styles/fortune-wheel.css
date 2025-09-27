@@ -1,0 +1,263 @@
+@import url('./main.css');
+
+body {
+  background: radial-gradient(circle at center, rgba(49, 87, 164, 0.16), transparent 62%),
+    linear-gradient(180deg, #090d18 0%, #0f1629 100%);
+  color: var(--text);
+  min-height: 100vh;
+  margin: 0;
+  font-family: 'Inter', 'Segoe UI', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.wheel-container {
+  max-width: 960px;
+  width: 100%;
+}
+
+.wheel-card {
+  margin-top: 24px;
+  padding: 32px;
+  background: linear-gradient(180deg, rgba(19, 29, 53, 0.8) 0%, rgba(16, 24, 43, 0.9) 100%);
+  border: 1px solid rgba(74, 105, 189, 0.35);
+  box-shadow: 0 28px 60px rgba(2, 10, 32, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.wheel-card h2 {
+  color: #f5f7ff;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.wheel-card .sub {
+  color: rgba(198, 208, 243, 0.75);
+}
+
+.wheel-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 24px auto;
+  width: min(520px, 100%);
+  aspect-ratio: 1 / 1;
+}
+
+.wheel-graphic {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, rgba(21, 31, 55, 0.78), rgba(8, 12, 24, 0.92));
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 32px 64px rgba(0, 0, 0, 0.55), inset 0 6px 18px rgba(255, 255, 255, 0.08);
+}
+
+.wheel-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(0deg);
+  pointer-events: none;
+}
+
+.wheel-face canvas {
+  width: 100%;
+  height: 100%;
+}
+
+.idle-spin {
+  animation: wheel-idle 18s linear infinite;
+}
+
+@keyframes wheel-idle {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin-btn {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(180deg, #3c6af7 0%, #1d3fb6 100%);
+  color: #f2f5ff;
+  font-weight: 700;
+  font-size: 1.1rem;
+  letter-spacing: 0.8px;
+  cursor: pointer;
+  box-shadow: 0 18px 42px rgba(34, 72, 172, 0.55), inset 0 2px 0 rgba(255, 255, 255, 0.18);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
+  z-index: 2;
+}
+
+.spin-btn:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+  filter: grayscale(0.2);
+}
+
+.spin-btn:not(:disabled):hover {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 24px 52px rgba(46, 98, 224, 0.6);
+}
+
+.wheel-pointer {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-left: 18px solid transparent;
+  border-right: 18px solid transparent;
+  border-bottom: 36px solid var(--brand-yellow);
+  transform: translateX(-50%);
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.65));
+  z-index: 3;
+}
+
+.status-message {
+  min-height: 24px;
+  margin-top: 16px;
+  color: rgba(198, 208, 243, 0.8);
+}
+
+.status-message.ok {
+  color: var(--ok);
+}
+
+.status-message.err {
+  color: var(--err);
+}
+
+.back-link {
+  margin-top: 24px;
+}
+
+.back-link a {
+  color: var(--brand-yellow);
+  text-decoration: none;
+}
+
+.back-link a:hover {
+  text-decoration: underline;
+}
+
+.modal,
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.3s ease;
+}
+
+.modal.hidden,
+.modal-overlay.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.modal-overlay {
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 10;
+}
+
+.modal {
+  z-index: 11;
+  padding: 16px;
+}
+
+.modal-content {
+  background: var(--card);
+  border-radius: 24px;
+  padding: 32px 36px;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+}
+
+.modal-content h3 {
+  margin-top: 0;
+  margin-bottom: 12px;
+}
+
+.modal-close {
+  position: absolute;
+  top: 22px;
+  right: 26px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+.claim-btn {
+  margin-top: 18px;
+  background: var(--brand-blue);
+  border: none;
+  color: #fff;
+  padding: 14px 26px;
+  border-radius: 999px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.claim-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.claim-btn:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 28px rgba(58, 123, 213, 0.35);
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 16px;
+  }
+
+  .wheel-card {
+    padding: 26px;
+  }
+
+  .spin-btn {
+    width: 140px;
+    height: 140px;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .wheel-wrapper {
+    width: 100%;
+  }
+
+  .modal-content {
+    padding: 28px 24px;
+  }
+}

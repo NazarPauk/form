@@ -19,16 +19,38 @@ const phoneInput = document.getElementById('phone');
 
 const GIFT_STATUS_VALUE = 'Не брав участі';
 const GIFT_BUTTON_ID = 'giftRewardBtn';
-const GIFT_PAGE_URL = 'https://dolota.ua/gift';
+const GIFT_PAGE_URL = 'pages/confirm-phone.html';
+const GIFT_STORAGE_KEY = 'dolota_gift_context';
 
 const COMPANY_PHONE = '+380933332212';
 const PHONE_PREFIX = '+38';
 const PHONE_DIGITS_REQUIRED = 10;
 
+let currentGiftContext = null;
+
 function sanitizePhoneDigits(raw = '') {
   return String(raw)
     .replace(/\D/g, '')
     .slice(0, PHONE_DIGITS_REQUIRED);
+}
+
+function updateGiftContext(payload = {}) {
+  try {
+    const digits = payload.phone_digits || sanitizePhoneDigits(payload.phone || (phoneInput && phoneInput.value) || '');
+    const display = payload.phone_display || payload.phone || (digits ? `${PHONE_PREFIX}${digits}` : '');
+    currentGiftContext = {
+      leadId: window.__leadId || payload.leadId || null,
+      phoneDigits: digits || null,
+      phoneDisplay: display || null,
+    };
+    sessionStorage.removeItem('dolota_gift_verified');
+  } catch (e) {
+    currentGiftContext = {
+      leadId: window.__leadId || payload.leadId || null,
+      phoneDigits: null,
+      phoneDisplay: null,
+    };
+  }
 }
 
 if (phoneInput) {
@@ -377,6 +399,20 @@ function updateGiftButton(statusValue) {
       giftLink.addEventListener(
         'click',
         () => {
+          try {
+            const digits = (currentGiftContext && currentGiftContext.phoneDigits) || (phoneInput ? sanitizePhoneDigits(phoneInput.value) : '');
+            const display = (currentGiftContext && currentGiftContext.phoneDisplay) || (digits ? `${PHONE_PREFIX}${digits}` : '');
+            const telegramLink = (tgCta && tgCta.href) || TELEGRAM_BOT_URL || DEFAULT_TELEGRAM_BOT_URL;
+            const contextPayload = {
+              leadId: window.__leadId || (currentGiftContext && currentGiftContext.leadId) || null,
+              phoneDigits: digits || null,
+              phoneDisplay: display || null,
+              telegramLink,
+            };
+            sessionStorage.setItem(GIFT_STORAGE_KEY, JSON.stringify(contextPayload));
+          } catch (err) {
+            /* noop */
+          }
           track('gift_button_click', { leadId: window.__leadId, status: statusValue });
         },
         { once: true },
@@ -607,6 +643,7 @@ form.addEventListener('submit', async (e) => {
     payload.phone_digits = v.phoneCheck.cleaned;
     if (v.phoneCheck.e164) payload.phone_e164 = v.phoneCheck.e164;
   }
+  updateGiftContext(payload);
   const meta = await buildUtm(); // тут чекаємо підтвердження/позицію
   const geoPerm = await getGeoPermissionState();
   const tech = await collectTech();
