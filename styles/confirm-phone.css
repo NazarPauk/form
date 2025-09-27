@@ -85,7 +85,7 @@ body {
   display: flex;
   flex-direction: column;
 }
-}
+
 
 .code-section label {
   display: block;
@@ -103,6 +103,26 @@ body {
   border: 1px solid var(--brand-blue);
   background: var(--input);
   color: var(--text);
+}
+
+.resend-wrapper {
+  margin-top: 12px;
+}
+
+.resend-link {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.85rem;
+  text-decoration: underline;
+  cursor: pointer;
+  padding: 0;
+}
+
+.resend-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  text-decoration: none;
 }
 
 .hidden {
