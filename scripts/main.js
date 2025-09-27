@@ -396,6 +396,7 @@ function updateGiftButton(statusValue) {
       giftLink.href = GIFT_PAGE_URL;
       giftLink.textContent = 'Отримати подарунок';
       giftLink.setAttribute('role', 'button');
+
       giftLink.addEventListener('click', () => {
         try {
           const digits = (currentGiftContext && currentGiftContext.phoneDigits) || (phoneInput ? sanitizePhoneDigits(phoneInput.value) : '');
@@ -412,6 +413,7 @@ function updateGiftButton(statusValue) {
           /* noop */
         }
       });
+
       afterSubmit.insertAdjacentElement('afterend', giftLink);
       return giftLink;
     }
