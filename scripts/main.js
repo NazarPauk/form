@@ -16,11 +16,14 @@ const btn = document.getElementById('submitBtn');
 const catalogs = document.getElementById('catalogs');
 const afterSubmit = document.getElementById('afterSubmit');
 const phoneInput = document.getElementById('phone');
+const giftNoticeEl = document.getElementById('giftNotice');
 
 const GIFT_STATUS_VALUE = 'Не брав участі';
 const GIFT_BUTTON_ID = 'giftRewardBtn';
 const GIFT_PAGE_URL = 'pages/confirm-phone.html';
 const GIFT_STORAGE_KEY = 'dolota_gift_context';
+const GIFT_STATUS_ALREADY_WON = 'Виграв';
+const GIFT_STATUS_RECEIVED = 'Отримав';
 
 const COMPANY_PHONE = '+380933332212';
 const PHONE_PREFIX = '+38';
@@ -51,6 +54,13 @@ function updateGiftContext(payload = {}) {
       phoneDisplay: null,
     };
   }
+}
+
+function setGiftNotice(message = '', tone = '') {
+  if (!giftNoticeEl) return;
+  giftNoticeEl.textContent = message || '';
+  const base = 'gift-note';
+  giftNoticeEl.className = tone ? `${base} ${tone}` : base;
 }
 
 if (phoneInput) {
@@ -387,15 +397,44 @@ function augmentTelegramCTA(meta) {
 function updateGiftButton(statusValue) {
   try {
     const existing = document.getElementById(GIFT_BUTTON_ID);
-    if (statusValue === GIFT_STATUS_VALUE) {
+    const normalized = typeof statusValue === 'string' ? statusValue.trim().toLowerCase() : '';
+    const baseStatuses = new Set([
+      '',
+      GIFT_STATUS_VALUE.toLowerCase(),
+      'не підтверджений',
+      'підтверджений',
+    ]);
+
+    if (normalized === GIFT_STATUS_ALREADY_WON.toLowerCase()) {
+      if (existing) existing.remove();
+      setGiftNotice('Ви вже виграли подарунок! Будь ласка, зверніться до менеджера для отримання.', 'warn');
+      return null;
+    }
+
+    if (normalized === GIFT_STATUS_RECEIVED.toLowerCase()) {
+      if (existing) existing.remove();
+      setGiftNotice('Подарунок вже отримано. Дякуємо за участь!', 'ok');
+      return null;
+    }
+
+    if (normalized === 'підтверджений') {
+      setGiftNotice('Номер вже підтверджено — натисніть «Отримати подарунок», щоб перейти до розіграшу.', 'ok');
+    } else if (normalized === GIFT_STATUS_VALUE.toLowerCase() || normalized === 'не підтверджений' || normalized === '') {
+      setGiftNotice('', '');
+    } else if (!baseStatuses.has(normalized)) {
+      setGiftNotice('', '');
+    }
+
+    if (baseStatuses.has(normalized)) {
       if (existing) return existing;
       if (!afterSubmit || !afterSubmit.parentElement) return null;
       const giftLink = document.createElement('a');
       giftLink.id = GIFT_BUTTON_ID;
       giftLink.className = 'gift-btn';
       giftLink.href = GIFT_PAGE_URL;
+      giftLink.target = '_blank';
+      giftLink.rel = 'noopener noreferrer';
       giftLink.textContent = 'Отримати подарунок';
-      giftLink.setAttribute('role', 'button');
 
       giftLink.addEventListener('click', () => {
         try {
