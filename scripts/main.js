@@ -396,24 +396,27 @@ function updateGiftButton(statusValue) {
       giftLink.href = GIFT_PAGE_URL;
       giftLink.textContent = 'Отримати подарунок';
       giftLink.setAttribute('role', 'button');
-
-      giftLink.addEventListener('click', () => {
-        try {
-          const digits = (currentGiftContext && currentGiftContext.phoneDigits) || (phoneInput ? sanitizePhoneDigits(phoneInput.value) : '');
-          const display = (currentGiftContext && currentGiftContext.phoneDisplay) || (digits ? `${PHONE_PREFIX}${digits}` : '');
-          const telegramLink = (tgCta && tgCta.href) || TELEGRAM_BOT_URL || DEFAULT_TELEGRAM_BOT_URL;
-          const contextPayload = {
-            leadId: window.__leadId || (currentGiftContext && currentGiftContext.leadId) || null,
-            phoneDigits: digits || null,
-            phoneDisplay: display || null,
-            telegramLink,
-          };
-          sessionStorage.setItem(GIFT_STORAGE_KEY, JSON.stringify(contextPayload));
-        } catch (err) {
-          /* noop */
-        }
-      });
-
+      giftLink.addEventListener(
+        'click',
+        () => {
+          try {
+            const digits = (currentGiftContext && currentGiftContext.phoneDigits) || (phoneInput ? sanitizePhoneDigits(phoneInput.value) : '');
+            const display = (currentGiftContext && currentGiftContext.phoneDisplay) || (digits ? `${PHONE_PREFIX}${digits}` : '');
+            const telegramLink = (tgCta && tgCta.href) || TELEGRAM_BOT_URL || DEFAULT_TELEGRAM_BOT_URL;
+            const contextPayload = {
+              leadId: window.__leadId || (currentGiftContext && currentGiftContext.leadId) || null,
+              phoneDigits: digits || null,
+              phoneDisplay: display || null,
+              telegramLink,
+            };
+            sessionStorage.setItem(GIFT_STORAGE_KEY, JSON.stringify(contextPayload));
+          } catch (err) {
+            /* noop */
+          }
+          track('gift_button_click', { leadId: window.__leadId, status: statusValue });
+        },
+        { once: true },
+      );
       afterSubmit.insertAdjacentElement('afterend', giftLink);
       return giftLink;
     }
