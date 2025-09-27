@@ -1,4 +1,5 @@
 const WEBHOOK_URL = 'https://hook.eu2.make.com/15sdp8heqq62udgrfmfquv4go2n9cbvs';
+const STATUS_WEBHOOK_URL = 'https://hook.eu2.make.com/frvapm5gb7i4ss8selrcpxnhqei35iit';
 const CONTEXT_KEY = 'dolota_gift_context';
 const VERIFIED_KEY = 'dolota_gift_verified';
 
@@ -9,6 +10,8 @@ const codeInput = document.getElementById('codeInput');
 const verifyCodeBtn = document.getElementById('verifyCodeBtn');
 const resendCodeWrapper = document.getElementById('resendCodeWrapper');
 const resendCodeLink = document.getElementById('resendCodeLink');
+const loadingIndicator = document.getElementById('loadingIndicator');
+const confirmationContent = document.getElementById('confirmationContent');
 
 const statusEl = document.getElementById('confirmStatus');
 
@@ -74,6 +77,30 @@ function showSendCodeButton() {
   sendCodeBtn.removeAttribute('aria-hidden');
 }
 
+function showLoader() {
+  if (!loadingIndicator) return;
+  loadingIndicator.classList.remove('hidden');
+  loadingIndicator.setAttribute('aria-hidden', 'false');
+}
+
+function hideLoader() {
+  if (!loadingIndicator) return;
+  loadingIndicator.classList.add('hidden');
+  loadingIndicator.setAttribute('aria-hidden', 'true');
+}
+
+function showContent() {
+  if (!confirmationContent) return;
+  confirmationContent.classList.remove('hidden');
+  confirmationContent.setAttribute('aria-hidden', 'false');
+}
+
+function hideContent() {
+  if (!confirmationContent) return;
+  confirmationContent.classList.add('hidden');
+  confirmationContent.setAttribute('aria-hidden', 'true');
+}
+
 async function sendVerificationCode({ resend = false, displayValue }) {
   if (!context) return;
   const payload = {
@@ -131,11 +158,134 @@ async function callWebhook(body) {
   }
 }
 
+async function callStatusWebhook(body) {
+  const response = await fetch(STATUS_WEBHOOK_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!response.ok) {
+    throw new Error(`Status webhook failed with ${response.status}`);
+  }
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch (err) {
+    return text;
+  }
+}
+
+function extractStatusValue(response) {
+  if (!response) return '';
+  if (typeof response === 'string') return response;
+  if (typeof response === 'object') {
+    const value = response['статус'] ?? response.status;
+    return typeof value === 'string' ? value : '';
+  }
+  return '';
+}
+
+function handleInitialStatus(statusValue, displayValue) {
+  const normalized = typeof statusValue === 'string' ? statusValue.trim().toLowerCase() : '';
+  const positiveMessage = 'Ви вже виграли подарунок! Для отримання зверніться до менеджера.';
+  const receivedMessage = 'Подарунок вже отримано. Якщо маєте питання — зверніться до менеджера.';
+
+  if (normalized === 'виграв') {
+    hideContent();
+    hideSendCodeButton();
+    toggleCodeSection(false);
+    toggleResendLink(false);
+    if (sendCodeBtn) sendCodeBtn.disabled = true;
+    sessionStorage.removeItem(VERIFIED_KEY);
+    setStatus(positiveMessage, 'warn');
+    return false;
+  }
+
+  if (normalized === 'отримав') {
+    hideContent();
+    hideSendCodeButton();
+    toggleCodeSection(false);
+    toggleResendLink(false);
+    if (sendCodeBtn) sendCodeBtn.disabled = true;
+    sessionStorage.removeItem(VERIFIED_KEY);
+    setStatus(receivedMessage, 'ok');
+    return false;
+  }
+
+  if (normalized === 'підтверджений') {
+    hideContent();
+    hideSendCodeButton();
+    toggleCodeSection(false);
+    toggleResendLink(false);
+    const verifiedPayload = {
+      ...context,
+      phoneDisplay: displayValue,
+      verifiedAt: new Date().toISOString(),
+      preVerified: true,
+    };
+    sessionStorage.setItem(VERIFIED_KEY, JSON.stringify(verifiedPayload));
+    setStatus('Номер вже підтверджено. Відкриваємо колесо фортуни…', 'ok');
+    setTimeout(() => {
+      window.location.replace('fortune-wheel.html');
+    }, 900);
+    return false;
+  }
+
+  if (normalized === 'не брав участі' || normalized === 'не підтверджений' || normalized === '') {
+    showContent();
+    showSendCodeButton();
+    toggleCodeSection(false);
+    toggleResendLink(false);
+    sessionStorage.removeItem(VERIFIED_KEY);
+    setStatus('Натисніть «Надіслати код підтвердження», щоб продовжити.', '');
+    return true;
+  }
+
+  showContent();
+  showSendCodeButton();
+  toggleCodeSection(false);
+  toggleResendLink(false);
+  sessionStorage.removeItem(VERIFIED_KEY);
+  setStatus('', '');
+  return true;
+}
+
+async function requestInitialStatus(displayValue) {
+  if (!context) return;
+  let enableSendButton = true;
+  try {
+    showLoader();
+    setStatus('Перевіряємо статус участі…');
+    if (sendCodeBtn) sendCodeBtn.disabled = true;
+    const payload = {
+      phone: displayValue,
+      phoneDigits: context.phoneDigits || null,
+      leadId: context.leadId || null,
+    };
+    const response = await callStatusWebhook(payload);
+    const statusValue = extractStatusValue(response);
+    enableSendButton = handleInitialStatus(statusValue, displayValue);
+  } catch (err) {
+    enableSendButton = true;
+    showContent();
+    showSendCodeButton();
+    toggleCodeSection(false);
+    toggleResendLink(false);
+    setStatus('Не вдалося отримати статус участі. Оновіть сторінку або спробуйте пізніше.', 'err');
+  } finally {
+    hideLoader();
+    if (sendCodeBtn) sendCodeBtn.disabled = !enableSendButton;
+  }
+}
+
 function init() {
   context = parseContext();
+  hideContent();
+  showLoader();
   if (!context || !context.leadId || (!context.phoneDigits && !context.phoneDisplay)) {
     setStatus('Не знайдено даних для підтвердження. Поверніться до форми та натисніть «Отримати подарунок».', 'err');
     if (sendCodeBtn) sendCodeBtn.disabled = true;
+    hideLoader();
     return;
   }
 
@@ -143,6 +293,12 @@ function init() {
   if (phoneInput) {
     phoneInput.value = displayValue;
   }
+
+  showSendCodeButton();
+  toggleCodeSection(false);
+  toggleResendLink(false);
+  if (sendCodeBtn) sendCodeBtn.disabled = true;
+  requestInitialStatus(displayValue);
 
   if (codeInput) {
     codeInput.addEventListener('input', () => {
