@@ -236,6 +236,7 @@ function handleCatalogClick(ev) {
       url = baseHref;
     }
   }
+
   const targetAttr = a.getAttribute('target') || '_self';
   window.__selectedCategory = name;
   const ctx = ensureVerificationContextFromForm();

@@ -73,6 +73,7 @@ function consumePersistedContext() {
 }
 
 function parseVerified() {
+
   let sessionData = null;
   try {
     sessionData = readVerificationFrom(sessionStorage);
@@ -326,6 +327,7 @@ function init() {
             code,
             verifiedAt: new Date().toISOString(),
           };
+
           try {
             sessionStorage.setItem(VERIFIED_KEY, JSON.stringify(verifiedPayload));
           } catch (err) {}
