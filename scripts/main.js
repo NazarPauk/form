@@ -31,6 +31,22 @@ let currentVerificationContext = null;
 let lastSubmitPayload = null;
 let catalogsHandlerAttached = false;
 
+try {
+  window.addEventListener('storage', (event) => {
+    if (event && event.key === VERIFY_RESULT_KEY) {
+      if (event.newValue) {
+        try {
+          sessionStorage.setItem(VERIFY_RESULT_KEY, event.newValue);
+        } catch (err) {}
+      } else {
+        try {
+          sessionStorage.removeItem(VERIFY_RESULT_KEY);
+        } catch (err) {}
+      }
+    }
+  });
+} catch (err) {}
+
 function sanitizePhoneDigits(raw = '') {
   return String(raw)
     .replace(/\D/g, '')
@@ -53,6 +69,9 @@ function updateVerificationContext(payload = {}) {
       (previous.phoneDigits !== currentVerificationContext.phoneDigits || previous.leadId !== currentVerificationContext.leadId)
     ) {
       sessionStorage.removeItem(VERIFY_RESULT_KEY);
+      try {
+        localStorage.removeItem(VERIFY_RESULT_KEY);
+      } catch (err) {}
     }
   } catch (e) {
     currentVerificationContext = {
@@ -61,28 +80,61 @@ function updateVerificationContext(payload = {}) {
       phoneDisplay: null,
     };
     sessionStorage.removeItem(VERIFY_RESULT_KEY);
+    try {
+      localStorage.removeItem(VERIFY_RESULT_KEY);
+    } catch (err) {}
+  }
+}
+
+function readVerificationFrom(storage) {
+  if (!storage) return null;
+  try {
+    const raw = storage.getItem(VERIFY_RESULT_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== 'object' || !data.verifiedAt) {
+      storage.removeItem(VERIFY_RESULT_KEY);
+      return null;
+    }
+    const ts = new Date(data.verifiedAt).getTime();
+    if (Number.isNaN(ts)) {
+      storage.removeItem(VERIFY_RESULT_KEY);
+      return null;
+    }
+    if (Date.now() - ts > VERIFICATION_TTL_MS) {
+      storage.removeItem(VERIFY_RESULT_KEY);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    try {
+      storage.removeItem(VERIFY_RESULT_KEY);
+    } catch (e) {}
+    return null;
   }
 }
 
 function getStoredVerification() {
+  let sessionData = null;
   try {
-    const raw = sessionStorage.getItem(VERIFY_RESULT_KEY);
-    if (!raw) return null;
-    const data = JSON.parse(raw);
-    if (!data || typeof data !== 'object') return null;
-    if (!data.verifiedAt) return null;
-    const ts = new Date(data.verifiedAt).getTime();
-    if (Number.isNaN(ts)) return null;
-    const age = Date.now() - ts;
-    if (age > VERIFICATION_TTL_MS) {
-      sessionStorage.removeItem(VERIFY_RESULT_KEY);
-      return null;
-    }
-    return data;
-  } catch (e) {
-    return null;
-
+    sessionData = readVerificationFrom(sessionStorage);
+  } catch (err) {
+    sessionData = null;
   }
+  if (sessionData) return sessionData;
+  let localData = null;
+  try {
+    localData = readVerificationFrom(localStorage);
+  } catch (err) {
+    localData = null;
+  }
+  if (localData) {
+    try {
+      sessionStorage.setItem(VERIFY_RESULT_KEY, JSON.stringify(localData));
+    } catch (err) {}
+    return localData;
+  }
+  return null;
 }
 
 function isVerificationValidForCurrentContact(verification) {
@@ -118,11 +170,22 @@ function redirectToConfirm(context) {
   try {
     sessionStorage.setItem(VERIFY_CONTEXT_KEY, JSON.stringify(context));
     sessionStorage.removeItem(VERIFY_RESULT_KEY);
-    try {
-      localStorage.setItem(VERIFY_CONTEXT_PERSIST_KEY, JSON.stringify(context));
-    } catch (e) {}
   } catch (e) {}
-  window.location.href = CONFIRM_PAGE_URL;
+  try {
+    localStorage.setItem(VERIFY_CONTEXT_PERSIST_KEY, JSON.stringify(context));
+  } catch (e) {}
+  try {
+    localStorage.removeItem(VERIFY_RESULT_KEY);
+  } catch (e) {}
+  let confirmWindow = null;
+  try {
+    confirmWindow = window.open(CONFIRM_PAGE_URL, '_blank', 'noopener');
+  } catch (err) {
+    confirmWindow = null;
+  }
+  if (!confirmWindow) {
+    window.location.href = CONFIRM_PAGE_URL;
+  }
 }
 
 function ensureVerificationContextFromForm() {
@@ -151,7 +214,6 @@ function promptForMissingContext() {
 }
 
 function handleCatalogClick(ev) {
-
   const a = ev.target.closest('#catalogs a[data-category], #catalogs a[href], #catalogs a[data-url]');
   if (!a) return;
   ev.preventDefault();
@@ -164,7 +226,6 @@ function handleCatalogClick(ev) {
     return;
   }
   const name = a.getAttribute('data-category') || a.textContent.trim();
-
   let url;
   if (hasDirectHref) {
     url = a.href;

@@ -16,6 +16,34 @@ const statusEl = document.getElementById('confirmStatus');
 
 let context = null;
 
+function readVerificationFrom(storage) {
+  if (!storage) return null;
+  try {
+    const raw = storage.getItem(VERIFIED_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== 'object' || !data.verifiedAt) {
+      storage.removeItem(VERIFIED_KEY);
+      return null;
+    }
+    const ts = new Date(data.verifiedAt).getTime();
+    if (Number.isNaN(ts)) {
+      storage.removeItem(VERIFIED_KEY);
+      return null;
+    }
+    if (Date.now() - ts > VERIFICATION_TTL_MS) {
+      storage.removeItem(VERIFIED_KEY);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    try {
+      storage.removeItem(VERIFIED_KEY);
+    } catch (e) {}
+    return null;
+  }
+}
+
 function parseContext() {
   try {
     const raw = sessionStorage.getItem(CONTEXT_KEY);
@@ -45,23 +73,27 @@ function consumePersistedContext() {
 }
 
 function parseVerified() {
+
+  let sessionData = null;
   try {
-    const raw = sessionStorage.getItem(VERIFIED_KEY);
-    if (!raw) return null;
-    const data = JSON.parse(raw);
-    if (!data || typeof data !== 'object') return null;
-    if (!data.verifiedAt) return null;
-    const ts = new Date(data.verifiedAt).getTime();
-    if (Number.isNaN(ts)) return null;
-    const age = Date.now() - ts;
-    if (age > VERIFICATION_TTL_MS) {
-      sessionStorage.removeItem(VERIFIED_KEY);
-      return null;
-    }
-    return data;
+    sessionData = readVerificationFrom(sessionStorage);
   } catch (err) {
-    return null;
+    sessionData = null;
   }
+  if (sessionData) return sessionData;
+  let localData = null;
+  try {
+    localData = readVerificationFrom(localStorage);
+  } catch (err) {
+    localData = null;
+  }
+  if (localData) {
+    try {
+      sessionStorage.setItem(VERIFIED_KEY, JSON.stringify(localData));
+    } catch (err) {}
+    return localData;
+  }
+  return null;
 }
 
 function setStatus(message, type = '') {
@@ -295,7 +327,13 @@ function init() {
             code,
             verifiedAt: new Date().toISOString(),
           };
-          sessionStorage.setItem(VERIFIED_KEY, JSON.stringify(verifiedPayload));
+
+          try {
+            sessionStorage.setItem(VERIFIED_KEY, JSON.stringify(verifiedPayload));
+          } catch (err) {}
+          try {
+            localStorage.setItem(VERIFIED_KEY, JSON.stringify(verifiedPayload));
+          } catch (err) {}
           setStatus('Номер підтверджено! Відкриваємо каталог…', 'ok');
           setTimeout(() => {
             openCatalogTarget(context);
