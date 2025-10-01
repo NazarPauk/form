@@ -18,7 +18,6 @@ const afterSubmit = document.getElementById('afterSubmit');
 const phoneInput = document.getElementById('phone');
 
 const CONFIRM_PAGE_URL = 'pages/confirm-phone.html';
-
 const CATALOG_LANDING_PAGE = 'pages/catalogs.html';
 const VERIFY_CONTEXT_KEY = 'dolota_catalog_context';
 const VERIFY_CONTEXT_PERSIST_KEY = 'dolota_catalog_context_persist';
@@ -84,6 +83,8 @@ function maybeOpenPendingCatalog() {
     }
   }, 300);
 }
+
+
 try {
   window.addEventListener('storage', (event) => {
     if (event && event.key === VERIFY_RESULT_KEY) {
@@ -363,6 +364,70 @@ function promptForMissingContext() {
       phoneInput.focus();
     } catch (e) {}
   }
+}
+
+function handleCatalogClick(ev) {
+  const a = ev.target.closest('#catalogs a[data-category], #catalogs a[href], #catalogs a[data-url]');
+  if (!a) return;
+  ev.preventDefault();
+  const rawHref = a.getAttribute('href');
+  const dataUrl = a.getAttribute('data-url') || a.dataset.url;
+  const hasDirectHref = rawHref && rawHref !== '#';
+  const baseHref = hasDirectHref ? rawHref : dataUrl;
+  if (!baseHref) {
+    promptForMissingContext();
+    return;
+  }
+  const name = a.getAttribute('data-category') || a.textContent.trim();
+  let url;
+  if (hasDirectHref) {
+    url = a.href;
+  } else {
+    try {
+      url = new URL(baseHref, location.href).toString();
+    } catch (err) {
+      url = baseHref;
+    }
+  }
+  window.__selectedCategory = name;
+  const ctx = ensureVerificationContextFromForm();
+  const phoneDigits = ctx && ctx.phoneDigits;
+  const leadId = window.__leadId || (ctx && ctx.leadId) || null;
+  if (!leadId || !phoneDigits || phoneDigits.length !== PHONE_DIGITS_REQUIRED) {
+    promptForMissingContext();
+    return;
+  }
+  const phoneDisplay = ctx && ctx.phoneDisplay ? ctx.phoneDisplay : `${PHONE_PREFIX}${phoneDigits}`;
+  currentVerificationContext = {
+    leadId,
+    phoneDigits,
+    phoneDisplay,
+  };
+  window.__leadId = leadId;
+  track('catalog_open', { leadId, category: name, href: url });
+  if (lastSubmitPayload) {
+    sendCategoryUpdate(lastSubmitPayload, name);
+  }
+  const landingUrl = resolveLandingUrl();
+  const contextPayload = {
+    ...currentVerificationContext,
+    catalogName: name,
+    catalogUrl: url,
+    landingUrl,
+  };
+  persistCatalogContext(contextPayload);
+  const verification = getStoredVerification();
+  if (verification && isVerificationValidForCurrentContact(verification)) {
+    openCatalogAfterVerification({ url, landingUrl });
+    return;
+  }
+  redirectToConfirm(contextPayload);
+}
+
+function ensureCatalogHandler() {
+  if (!catalogs || catalogsHandlerAttached) return;
+  catalogs.addEventListener('click', handleCatalogClick);
+  catalogsHandlerAttached = true;
 }
 
 function handleCatalogClick(ev) {
@@ -965,7 +1030,6 @@ function loadVisitor() {
 }
 
 // === Submit handler ===
-
 if (form && btn && statusEl) {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1042,7 +1106,6 @@ if (form && btn && statusEl) {
     } finally {
       btn.disabled = false;
       btn.textContent = 'Надіслати';
-
     }
   });
 } else {
