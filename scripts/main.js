@@ -81,6 +81,7 @@ function getStoredVerification() {
     return data;
   } catch (e) {
     return null;
+
   }
 }
 
@@ -150,16 +151,31 @@ function promptForMissingContext() {
 }
 
 function handleCatalogClick(ev) {
-  const a = ev.target.closest('#catalogs a[data-category], #catalogs a[href]');
+
+  const a = ev.target.closest('#catalogs a[data-category], #catalogs a[href], #catalogs a[data-url]');
   if (!a) return;
   ev.preventDefault();
   const rawHref = a.getAttribute('href');
-  if (!rawHref || rawHref === '#') {
+  const dataUrl = a.getAttribute('data-url') || a.dataset.url;
+  const hasDirectHref = rawHref && rawHref !== '#';
+  const baseHref = hasDirectHref ? rawHref : dataUrl;
+  if (!baseHref) {
     promptForMissingContext();
     return;
   }
   const name = a.getAttribute('data-category') || a.textContent.trim();
-  const url = a.href;
+
+  let url;
+  if (hasDirectHref) {
+    url = a.href;
+  } else {
+    try {
+      url = new URL(baseHref, location.href).toString();
+    } catch (err) {
+      url = baseHref;
+    }
+  }
+
   const targetAttr = a.getAttribute('target') || '_self';
   window.__selectedCategory = name;
   const ctx = ensureVerificationContextFromForm();
@@ -315,11 +331,20 @@ async function buildUtm() {
 
 function augmentCatalogLinks(meta) {
   try {
-    const links = document.querySelectorAll('#catalogs a[href]');
+    const links = document.querySelectorAll('#catalogs a[data-category]');
     links.forEach((a) => {
-      const href = a.getAttribute('href');
-      if (!href || href === '#') return;
-      const url = new URL(href, location.href);
+      const rawHref = a.getAttribute('href');
+      const dataUrl = a.getAttribute('data-url') || a.dataset.url;
+      const storedBase = a.getAttribute('data-base');
+      const baseHref = dataUrl || storedBase || (rawHref && rawHref !== '#' ? rawHref : null);
+      if (!baseHref) return;
+      a.setAttribute('data-base', baseHref);
+      let url;
+      try {
+        url = new URL(baseHref, location.href);
+      } catch (err) {
+        return;
+      }
       Object.entries(meta.utm || {}).forEach(([k, v]) => url.searchParams.set(k, v));
       if (meta.geo && typeof meta.geo.lat === 'number') {
         url.searchParams.set('lat', String(meta.geo.lat));
