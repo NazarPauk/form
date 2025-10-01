@@ -168,8 +168,13 @@ function openCatalogTarget(ctx) {
   const landingUrl = ctx.landingUrl || resolveCatalogLandingUrl();
   let opened = false;
   try {
-    const win = window.open(url, '_blank', 'noopener');
-    opened = !!win;
+    const win = window.open(url, '_blank');
+    if (win) {
+      try {
+        win.opener = null;
+      } catch (e) {}
+      opened = true;
+    }
   } catch (err) {
     opened = false;
   }

@@ -74,10 +74,14 @@ function maybeOpenPendingCatalog() {
   if (!pending) return;
   setTimeout(() => {
     try {
-      const win = window.open(pending, '_blank', 'noopener');
-      if (!win) {
-        window.location.href = pending;
+      const win = window.open(pending, '_blank');
+      if (win) {
+        try {
+          win.opener = null;
+        } catch (e) {}
+        return;
       }
+      window.location.href = pending;
     } catch (err) {
       window.location.href = pending;
     }
@@ -283,8 +287,13 @@ function openCatalogAfterVerification({ url, landingUrl }) {
   if (!url) return;
   let opened = false;
   try {
-    const win = window.open(url, '_blank', 'noopener');
-    opened = !!win;
+    const win = window.open(url, '_blank');
+    if (win) {
+      try {
+        win.opener = null;
+      } catch (e) {}
+      opened = true;
+    }
   } catch (err) {
     opened = false;
   }
