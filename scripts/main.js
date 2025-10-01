@@ -18,6 +18,7 @@ const afterSubmit = document.getElementById('afterSubmit');
 const phoneInput = document.getElementById('phone');
 
 const CONFIRM_PAGE_URL = 'pages/confirm-phone.html';
+
 const CATALOG_LANDING_PAGE = 'pages/catalogs.html';
 const VERIFY_CONTEXT_KEY = 'dolota_catalog_context';
 const VERIFY_CONTEXT_PERSIST_KEY = 'dolota_catalog_context_persist';
@@ -83,7 +84,6 @@ function maybeOpenPendingCatalog() {
     }
   }, 300);
 }
-
 try {
   window.addEventListener('storage', (event) => {
     if (event && event.key === VERIFY_RESULT_KEY) {
@@ -965,6 +965,7 @@ function loadVisitor() {
 }
 
 // === Submit handler ===
+
 if (form && btn && statusEl) {
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -1041,6 +1042,7 @@ if (form && btn && statusEl) {
     } finally {
       btn.disabled = false;
       btn.textContent = 'Надіслати';
+
     }
   });
 } else {

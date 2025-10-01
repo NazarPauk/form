@@ -3,8 +3,8 @@ const CONTEXT_KEY = 'dolota_catalog_context';
 const CONTEXT_PERSIST_KEY = 'dolota_catalog_context_persist';
 const VERIFIED_KEY = 'dolota_catalog_verified';
 const VERIFICATION_TTL_MS = 10 * 60 * 1000;
-const PENDING_CATALOG_KEY = 'dolota_catalog_pending';
 
+const PENDING_CATALOG_KEY = 'dolota_catalog_pending';
 const phoneInput = document.getElementById('phoneDisplay');
 const sendCodeBtn = document.getElementById('sendCodeBtn');
 const codeSection = document.getElementById('codeSection');
@@ -258,6 +258,7 @@ function init() {
     setTimeout(() => {
       openCatalogTarget(context);
     }, 150);
+
     return;
   }
 
@@ -331,6 +332,7 @@ function init() {
             code,
             verifiedAt: new Date().toISOString(),
           };
+
           try {
             sessionStorage.setItem(CONTEXT_KEY, JSON.stringify(context));
           } catch (err) {}
