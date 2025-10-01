@@ -1,11 +1,16 @@
 const WEBHOOK_URL = 'https://hook.eu2.make.com/15sdp8heqq62udgrfmfquv4go2n9cbvs';
+
 const CHECK_WEBHOOK_URL = 'https://hook.eu2.make.com/1eugiujlu8s20qptl3cgj49bikwkcrqc';
+
 const CONTEXT_KEY = 'dolota_catalog_context';
 const CONTEXT_PERSIST_KEY = 'dolota_catalog_context_persist';
 const VERIFIED_KEY = 'dolota_catalog_verified';
 const VERIFICATION_TTL_MS = 10 * 60 * 1000;
+
 const PENDING_CATALOG_KEY = 'dolota_catalog_pending';
 
+
+const PENDING_CATALOG_KEY = 'dolota_catalog_pending';
 const phoneInput = document.getElementById('phoneDisplay');
 const sendCodeBtn = document.getElementById('sendCodeBtn');
 const codeSection = document.getElementById('codeSection');
@@ -143,7 +148,7 @@ function contextMatchesVerification(ctx, verification) {
 function openCatalogTarget(ctx) {
   if (!ctx || !ctx.catalogUrl) return;
   const url = ctx.catalogUrl;
-  const landingUrl = ctx.landingUrl || '../pages/catalogs.html';
+  const landingUrl = ctx.landingUrl || '../../pages/catalogs.html';
   let opened = false;
   try {
     const win = window.open(url, '_blank', 'noopener');
@@ -308,6 +313,7 @@ async function init() {
     setTimeout(() => {
       openCatalogTarget(context);
     }, 150);
+
     return;
   }
 
