@@ -4,6 +4,7 @@ const CONTEXT_PERSIST_KEY = 'dolota_catalog_context_persist';
 const VERIFIED_KEY = 'dolota_catalog_verified';
 const VERIFICATION_TTL_MS = 10 * 60 * 1000;
 
+const PENDING_CATALOG_KEY = 'dolota_catalog_pending';
 const phoneInput = document.getElementById('phoneDisplay');
 const sendCodeBtn = document.getElementById('sendCodeBtn');
 const codeSection = document.getElementById('codeSection');
@@ -73,7 +74,6 @@ function consumePersistedContext() {
 }
 
 function parseVerified() {
-
   let sessionData = null;
   try {
     sessionData = readVerificationFrom(sessionStorage);
@@ -141,20 +141,24 @@ function contextMatchesVerification(ctx, verification) {
 
 function openCatalogTarget(ctx) {
   if (!ctx || !ctx.catalogUrl) return;
-  const target = ctx.target && ctx.target !== '_self' ? '_blank' : '_self';
   const url = ctx.catalogUrl;
-  const returnUrl = ctx.returnUrl || '../index.html';
+  const landingUrl = ctx.landingUrl || '../pages/catalogs.html';
+  let opened = false;
   try {
-    if (target === '_blank') {
-      window.open(url, '_blank', 'noopener');
-      setTimeout(() => {
-        window.location.href = returnUrl;
-      }, 400);
-    } else {
-      window.location.href = url;
-    }
+    const win = window.open(url, '_blank', 'noopener');
+    opened = !!win;
   } catch (err) {
-    window.location.href = url;
+    opened = false;
+  }
+  if (!opened) {
+    try {
+      sessionStorage.setItem(PENDING_CATALOG_KEY, url);
+    } catch (err) {}
+  }
+  try {
+    window.location.href = landingUrl;
+  } catch (err) {
+    window.location.assign(landingUrl);
   }
 }
 
@@ -253,7 +257,8 @@ function init() {
     setStatus('Номер вже підтверджено. Відкриваємо каталог…', 'ok');
     setTimeout(() => {
       openCatalogTarget(context);
-    }, 250);
+    }, 150);
+
     return;
   }
 
@@ -329,15 +334,19 @@ function init() {
           };
 
           try {
+            sessionStorage.setItem(CONTEXT_KEY, JSON.stringify(context));
+          } catch (err) {}
+          try {
+            localStorage.setItem(CONTEXT_PERSIST_KEY, JSON.stringify(context));
+          } catch (err) {}
+          try {
             sessionStorage.setItem(VERIFIED_KEY, JSON.stringify(verifiedPayload));
           } catch (err) {}
           try {
             localStorage.setItem(VERIFIED_KEY, JSON.stringify(verifiedPayload));
           } catch (err) {}
           setStatus('Номер підтверджено! Відкриваємо каталог…', 'ok');
-          setTimeout(() => {
-            openCatalogTarget(context);
-          }, 500);
+          openCatalogTarget(context);
         } else {
           setStatus('Код не підходить. Перевірте цифри та спробуйте ще раз.', 'err');
           if (codeInput) {

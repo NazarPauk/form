@@ -18,10 +18,13 @@ const afterSubmit = document.getElementById('afterSubmit');
 const phoneInput = document.getElementById('phone');
 
 const CONFIRM_PAGE_URL = 'pages/confirm-phone.html';
+
+const CATALOG_LANDING_PAGE = 'pages/catalogs.html';
 const VERIFY_CONTEXT_KEY = 'dolota_catalog_context';
 const VERIFY_CONTEXT_PERSIST_KEY = 'dolota_catalog_context_persist';
 const VERIFY_RESULT_KEY = 'dolota_catalog_verified';
 const VERIFICATION_TTL_MS = 10 * 60 * 1000; // 10 хвилин
+const PENDING_CATALOG_KEY = 'dolota_catalog_pending';
 
 const COMPANY_PHONE = '+380933332212';
 const PHONE_PREFIX = '+38';
@@ -31,6 +34,56 @@ let currentVerificationContext = null;
 let lastSubmitPayload = null;
 let catalogsHandlerAttached = false;
 
+function resolveLandingUrl() {
+  try {
+    const origin = location && location.origin ? location.origin : new URL(location.href).origin;
+    return new URL(CATALOG_LANDING_PAGE, origin + '/').toString();
+  } catch (err) {
+    return CATALOG_LANDING_PAGE;
+  }
+}
+
+function isOnCatalogLandingPage() {
+  try {
+    return document.body && document.body.classList && document.body.classList.contains('catalog-landing');
+  } catch (err) {
+    return false;
+  }
+}
+
+function storePendingCatalog(url) {
+  if (!url) return;
+  try {
+    sessionStorage.setItem(PENDING_CATALOG_KEY, url);
+  } catch (err) {}
+}
+
+function consumePendingCatalog() {
+  try {
+    const pending = sessionStorage.getItem(PENDING_CATALOG_KEY);
+    if (!pending) return null;
+    sessionStorage.removeItem(PENDING_CATALOG_KEY);
+    return pending;
+  } catch (err) {
+    return null;
+  }
+}
+
+function maybeOpenPendingCatalog() {
+  if (!isOnCatalogLandingPage()) return;
+  const pending = consumePendingCatalog();
+  if (!pending) return;
+  setTimeout(() => {
+    try {
+      const win = window.open(pending, '_blank', 'noopener');
+      if (!win) {
+        window.location.href = pending;
+      }
+    } catch (err) {
+      window.location.href = pending;
+    }
+  }, 300);
+}
 try {
   window.addEventListener('storage', (event) => {
     if (event && event.key === VERIFY_RESULT_KEY) {
@@ -52,6 +105,80 @@ function sanitizePhoneDigits(raw = '') {
     .replace(/\D/g, '')
     .slice(0, PHONE_DIGITS_REQUIRED);
 }
+
+function readContextFrom(storage, key) {
+  if (!storage) return null;
+  try {
+    const raw = storage.getItem(key);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== 'object') {
+      storage.removeItem(key);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    try {
+      storage.removeItem(key);
+    } catch (e) {}
+    return null;
+  }
+}
+
+function loadStoredCatalogContext() {
+  let ctx = null;
+  try {
+    ctx = readContextFrom(sessionStorage, VERIFY_CONTEXT_KEY);
+  } catch (err) {
+    ctx = null;
+  }
+  if (ctx) return ctx;
+  try {
+    ctx = readContextFrom(localStorage, VERIFY_CONTEXT_KEY);
+  } catch (err) {
+    ctx = null;
+  }
+  if (ctx) return ctx;
+  try {
+    ctx = readContextFrom(localStorage, VERIFY_CONTEXT_PERSIST_KEY);
+    if (ctx) {
+      try {
+        sessionStorage.setItem(VERIFY_CONTEXT_KEY, JSON.stringify(ctx));
+      } catch (err) {}
+    }
+  } catch (err) {
+    ctx = null;
+  }
+  return ctx;
+}
+
+function persistCatalogContext(context) {
+  if (!context || typeof context !== 'object') return;
+  try {
+    sessionStorage.setItem(VERIFY_CONTEXT_KEY, JSON.stringify(context));
+  } catch (err) {}
+  try {
+    localStorage.setItem(VERIFY_CONTEXT_PERSIST_KEY, JSON.stringify(context));
+  } catch (err) {}
+}
+
+function hydrateContextFromStorage() {
+  const stored = loadStoredCatalogContext();
+  if (!stored) return;
+  currentVerificationContext = {
+    leadId: stored.leadId || window.__leadId || null,
+    phoneDigits: stored.phoneDigits || stored.phone_digits || null,
+    phoneDisplay:
+      stored.phoneDisplay ||
+      stored.phone_display ||
+      (stored.phoneDigits || stored.phone_digits ? `${PHONE_PREFIX}${stored.phoneDigits || stored.phone_digits}` : null),
+  };
+  if (!window.__leadId && currentVerificationContext.leadId) {
+    window.__leadId = currentVerificationContext.leadId;
+  }
+}
+
+hydrateContextFromStorage();
 
 function updateVerificationContext(payload = {}) {
   try {
@@ -151,17 +278,24 @@ function isVerificationValidForCurrentContact(verification) {
   return true;
 }
 
-function openCatalogDirect({ url, target }) {
+function openCatalogAfterVerification({ url, landingUrl }) {
   if (!url) return;
-  const finalTarget = target && target !== '_self' ? '_blank' : '_self';
+  let opened = false;
   try {
-    if (finalTarget === '_blank') {
-      window.open(url, '_blank', 'noopener');
-    } else {
-      window.location.href = url;
-    }
-  } catch (e) {
-    window.location.href = url;
+    const win = window.open(url, '_blank', 'noopener');
+    opened = !!win;
+  } catch (err) {
+    opened = false;
+  }
+  if (!opened) {
+    storePendingCatalog(url);
+  }
+  if (isOnCatalogLandingPage()) return;
+  const destination = landingUrl || resolveLandingUrl();
+  try {
+    window.location.href = destination;
+  } catch (err) {
+    window.location.assign(destination);
   }
 }
 
@@ -177,20 +311,38 @@ function redirectToConfirm(context) {
   try {
     localStorage.removeItem(VERIFY_RESULT_KEY);
   } catch (e) {}
-  let confirmWindow = null;
   try {
-    confirmWindow = window.open(CONFIRM_PAGE_URL, '_blank', 'noopener');
-  } catch (err) {
-    confirmWindow = null;
-  }
-  if (!confirmWindow) {
     window.location.href = CONFIRM_PAGE_URL;
+  } catch (err) {
+    window.location.assign(CONFIRM_PAGE_URL);
   }
 }
 
 function ensureVerificationContextFromForm() {
   if (!currentVerificationContext || !currentVerificationContext.phoneDigits) {
-    updateVerificationContext({});
+    if (phoneInput) {
+      updateVerificationContext({});
+    }
+  }
+  if (!currentVerificationContext || !currentVerificationContext.phoneDigits) {
+    const stored = loadStoredCatalogContext();
+    if (stored) {
+      currentVerificationContext = {
+        leadId: stored.leadId || window.__leadId || null,
+        phoneDigits: stored.phoneDigits || stored.phone_digits || null,
+        phoneDisplay:
+          stored.phoneDisplay ||
+          stored.phone_display ||
+          (stored.phoneDigits || stored.phone_digits ? `${PHONE_PREFIX}${stored.phoneDigits || stored.phone_digits}` : null),
+      };
+    }
+  }
+  if (!currentVerificationContext) {
+    currentVerificationContext = {
+      leadId: window.__leadId || null,
+      phoneDigits: null,
+      phoneDisplay: null,
+    };
   }
   if (currentVerificationContext && !currentVerificationContext.leadId && window.__leadId) {
     currentVerificationContext.leadId = window.__leadId;
@@ -236,8 +388,6 @@ function handleCatalogClick(ev) {
       url = baseHref;
     }
   }
-
-  const targetAttr = a.getAttribute('target') || '_self';
   window.__selectedCategory = name;
   const ctx = ensureVerificationContextFromForm();
   const phoneDigits = ctx && ctx.phoneDigits;
@@ -257,18 +407,19 @@ function handleCatalogClick(ev) {
   if (lastSubmitPayload) {
     sendCategoryUpdate(lastSubmitPayload, name);
   }
-  const verification = getStoredVerification();
-  if (verification && isVerificationValidForCurrentContact(verification)) {
-    openCatalogDirect({ url, target: targetAttr });
-    return;
-  }
+  const landingUrl = resolveLandingUrl();
   const contextPayload = {
     ...currentVerificationContext,
     catalogName: name,
     catalogUrl: url,
-    target: targetAttr,
-    returnUrl: location.href,
+    landingUrl,
   };
+  persistCatalogContext(contextPayload);
+  const verification = getStoredVerification();
+  if (verification && isVerificationValidForCurrentContact(verification)) {
+    openCatalogAfterVerification({ url, landingUrl });
+    return;
+  }
   redirectToConfirm(contextPayload);
 }
 
@@ -814,83 +965,95 @@ function loadVisitor() {
 }
 
 // === Submit handler ===
-form.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  statusEl.textContent = '';
-  const fd = new FormData(form);
-  const v = validate(fd);
-  if (!window.__leadId) window.__leadId = genLeadId();
-  if (!v.ok) {
-    statusEl.textContent = v.msg;
-    statusEl.className = 'status err';
-    return;
-  }
-  btn.disabled = true;
-  btn.textContent = 'Запитуємо геолокацію…';
 
-  const payload = Object.fromEntries(fd.entries());
-  if (v.phoneCheck) {
-    payload.phone = v.phoneCheck.display || payload.phone;
-    payload.phone_digits = v.phoneCheck.cleaned;
-    if (v.phoneCheck.e164) payload.phone_e164 = v.phoneCheck.e164;
-  }
-  updateVerificationContext(payload);
-  lastSubmitPayload = payload;
-  const meta = await buildUtm(); // тут чекаємо підтвердження/позицію
-  const geoPerm = await getGeoPermissionState();
-  const tech = await collectTech();
-  const behavior = initBehaviorTracking().snapshot(); // короткий знімок на момент сабміту
-  payload.leadId = window.__leadId;
-  payload.tag = meta.tag;
-  payload.source = 'expo_nfc';
-  payload.timestamp = meta.iso;
-  payload.utm = meta.utm;
-  if (meta.geo) payload.geo = meta.geo;
-  payload.tz = meta.tz;
-  payload.tech = tech;
-  payload.behavior = behavior;
-  payload.geo_permission = geoPerm;
-
-  try {
-    const webhookResponse = await sendContactNow(payload);
-    statusEl.textContent = 'Дякуємо! Дані успішно надіслані.';
-    autoOpenVCard(meta);
-    statusEl.className = 'status ok';
-    saveVisitor(payload);
-    if (afterSubmit) afterSubmit.style.display = 'block';
-    if (catalogs) {
-      catalogs.style.display = 'block';
-      catalogs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+if (form && btn && statusEl) {
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    statusEl.textContent = '';
+    const fd = new FormData(form);
+    const v = validate(fd);
+    if (!window.__leadId) window.__leadId = genLeadId();
+    if (!v.ok) {
+      statusEl.textContent = v.msg;
+      statusEl.className = 'status err';
+      return;
     }
-    augmentCatalogLinks(meta);
-    augmentTelegramCTA(meta);
+    btn.disabled = true;
+    btn.textContent = 'Запитуємо геолокацію…';
+
+    const payload = Object.fromEntries(fd.entries());
+    if (v.phoneCheck) {
+      payload.phone = v.phoneCheck.display || payload.phone;
+      payload.phone_digits = v.phoneCheck.cleaned;
+      if (v.phoneCheck.e164) payload.phone_e164 = v.phoneCheck.e164;
+    }
+    updateVerificationContext(payload);
+    lastSubmitPayload = payload;
+    const meta = await buildUtm(); // тут чекаємо підтвердження/позицію
+    const geoPerm = await getGeoPermissionState();
+    const tech = await collectTech();
+    const behavior = initBehaviorTracking().snapshot(); // короткий знімок на момент сабміту
+    payload.leadId = window.__leadId;
+    payload.tag = meta.tag;
+    payload.source = 'expo_nfc';
+    payload.timestamp = meta.iso;
+    payload.utm = meta.utm;
+    if (meta.geo) payload.geo = meta.geo;
+    payload.tz = meta.tz;
+    payload.tech = tech;
+    payload.behavior = behavior;
+    payload.geo_permission = geoPerm;
+
     try {
-      const tg = document.getElementById('tgCta');
-      if (tg) tg.addEventListener('click', () => {
-        track('tg_cta_click', { leadId: window.__leadId });
-      }, { once: true });
-      const call = document.getElementById('callCta');
-      if (call) call.addEventListener('click', () => {
-        track('call_click', { leadId: window.__leadId });
-      }, { once: true });
-    } catch (e) {}
-    ensureCatalogHandler();
-    const saveBtn = document.getElementById('saveVCardBtn');
-    if (saveBtn) {
-      saveBtn.onclick = () => {
-        track('vcard_click', { leadId: window.__leadId });
-        const vcf = buildVCard(meta);
-        triggerVcfDownload(vcf);
-      };
+      const webhookResponse = await sendContactNow(payload);
+      statusEl.textContent = 'Дякуємо! Дані успішно надіслані.';
+      autoOpenVCard(meta);
+      statusEl.className = 'status ok';
+      saveVisitor(payload);
+      if (afterSubmit) afterSubmit.style.display = 'block';
+      if (catalogs) {
+        catalogs.style.display = 'block';
+        catalogs.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      augmentCatalogLinks(meta);
+      augmentTelegramCTA(meta);
+      try {
+        const tg = document.getElementById('tgCta');
+        if (tg) tg.addEventListener('click', () => {
+          track('tg_cta_click', { leadId: window.__leadId });
+        }, { once: true });
+        const call = document.getElementById('callCta');
+        if (call) call.addEventListener('click', () => {
+          track('call_click', { leadId: window.__leadId });
+        }, { once: true });
+      } catch (e) {}
+      ensureCatalogHandler();
+      const saveBtn = document.getElementById('saveVCardBtn');
+      if (saveBtn) {
+        saveBtn.onclick = () => {
+          track('vcard_click', { leadId: window.__leadId });
+          const vcf = buildVCard(meta);
+          triggerVcfDownload(vcf);
+        };
+      }
+    } catch (err) {
+      statusEl.textContent = 'Помилка відправлення. Спробуйте ще раз або перевірте інтернет.';
+      statusEl.className = 'status err';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Надіслати';
+
     }
-  } catch (err) {
-    statusEl.textContent = 'Помилка відправлення. Спробуйте ще раз або перевірте інтернет.';
-    statusEl.className = 'status err';
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Надіслати';
+  });
+} else {
+  const saveBtn = document.getElementById('saveVCardBtn');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      const vcf = buildVCard({});
+      triggerVcfDownload(vcf);
+    });
   }
-});
+}
 
 function updateOnlineStatus() {
   const isOnline = navigator.onLine;
@@ -920,6 +1083,7 @@ function updateOnlineStatus() {
 window.addEventListener('online', updateOnlineStatus);
 window.addEventListener('offline', updateOnlineStatus);
 document.addEventListener('DOMContentLoaded', updateOnlineStatus);
+document.addEventListener('DOMContentLoaded', maybeOpenPendingCatalog);
 
 (function initCallCta() {
   const callBtn = document.getElementById('callCta');
