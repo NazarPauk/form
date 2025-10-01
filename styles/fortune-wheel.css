@@ -5,16 +5,12 @@ body {
     linear-gradient(180deg, #090d18 0%, #0f1629 100%);
   color: var(--text);
   min-height: 100vh;
-  min-height: 100dvh;
   margin: 0;
   font-family: 'Inter', 'Segoe UI', sans-serif;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: calc(24px + env(safe-area-inset-top, 0px))
-    max(16px, env(safe-area-inset-right, 16px))
-    calc(24px + env(safe-area-inset-bottom, 0px))
-    max(16px, env(safe-area-inset-left, 16px));
+  padding: 24px;
 }
 
 .wheel-container {
@@ -48,7 +44,6 @@ body {
   margin: 24px auto;
   width: min(520px, 100%);
   aspect-ratio: 1 / 1;
-  max-width: min(520px, calc(100vw - 48px));
 }
 
 .wheel-graphic {
@@ -243,11 +238,11 @@ body {
 
 @media (max-width: 768px) {
   body {
-    align-items: flex-start;
+    padding: 16px;
   }
 
   .wheel-card {
-    padding: 24px;
+    padding: 26px;
   }
 
   .spin-btn {
@@ -257,35 +252,12 @@ body {
   }
 }
 
-@media (max-width: 540px) {
-  .wheel-card {
-    padding: 20px;
-  }
-
-  .wheel-pointer {
-    top: -18px;
+@media (max-width: 520px) {
+  .wheel-wrapper {
+    width: 100%;
   }
 
   .modal-content {
-    padding: 24px;
-  }
-}
-
-@media (max-width: 420px) {
-  .spin-btn {
-    width: 120px;
-    height: 120px;
-  }
-
-  .wheel-wrapper {
-    margin: 16px auto;
-  }
-
-  .wheel-card h2 {
-    font-size: 1.1rem;
-  }
-
-  .status-message {
-    font-size: 0.95rem;
+    padding: 28px 24px;
   }
 }

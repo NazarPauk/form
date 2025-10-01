@@ -18,9 +18,9 @@
   box-sizing: border-box;
 }
 
-html {
+html,
+body {
   height: 100%;
-  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -33,13 +33,10 @@ body {
   color: var(--text);
   line-height: 1.45;
   min-height: 100vh;
-  min-height: 100dvh;
   height: auto; /* критично */
   display: flex;
   flex-direction: column;
   overflow-x: hidden; /* захист від горизонтального скролу */
-  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px)
-    env(safe-area-inset-left, 0px);
 }
 
 body::before {
@@ -57,13 +54,15 @@ body::before {
 }
 
 html,
+body {
+  min-height: 100%;
+  height: auto;
+}
+
 .container {
   max-width: 980px;
   margin: 0 auto;
-  padding: calc(24px + env(safe-area-inset-top, 0px))
-    max(16px, env(safe-area-inset-right, 16px))
-    calc(64px + env(safe-area-inset-bottom, 0px))
-    max(16px, env(safe-area-inset-left, 16px));
+  padding: 24px 16px 64px;
   width: 100%;
   box-sizing: border-box;
 }
@@ -129,10 +128,6 @@ header {
     align-items: flex-start;
     gap: 8px;
   }
-
-  .brand img {
-    height: 44px;
-  }
 }
 
 label {
@@ -150,15 +145,6 @@ input {
   background: var(--input);
   color: var(--text);
   outline: none;
-}
-
-input,
-button,
-select,
-textarea {
-  font: inherit;
-  -webkit-appearance: none;
-  appearance: none;
 }
 
 .phone-field {
@@ -197,17 +183,16 @@ textarea {
   margin: 12px 0 0;
   color: var(--brand-yellow);
   font-weight: 600;
-  display: inline;
-  cursor: text;
-  background: transparent;
-  border: 0;
-  padding: 0;
-  outline: none;
-  transition: color 0.2s ease;
+  cursor: pointer;
+  display: inline-block;
+  transition: transform 0.12s ease, opacity 0.12s ease;
 }
 
-.contact-phone:focus-visible {
-  text-decoration: underline;
+.contact-phone:hover,
+.contact-phone:focus {
+  opacity: 0.85;
+  transform: translateY(-1px);
+  outline: none;
 }
 
 .contact-phone.copied::after {
@@ -276,21 +261,6 @@ button:active {
 
 .status.err {
   color: var(--err);
-}
-
-.gift-note {
-  margin: 12px 0 0;
-  min-height: 24px;
-  font-size: 0.95rem;
-  color: var(--muted);
-}
-
-.gift-note.warn {
-  color: var(--warn);
-}
-
-.gift-note.ok {
-  color: var(--ok);
 }
 
 .catalogs {
@@ -476,50 +446,4 @@ footer {
 .contact-alt .contact-box {
   background: transparent;
   border: 0;
-}
-
-@media (max-width: 540px) {
-  .card {
-    padding: 20px;
-  }
-
-  .brand h1 {
-    font-size: 18px;
-  }
-
-  .status {
-    font-size: 0.9rem;
-  }
-
-  .cta-row {
-    gap: 12px;
-  }
-}
-
-@media (min-width: 768px) {
-  .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .grid > div:last-child {
-    grid-column: span 2;
-  }
-
-  .cta-row {
-    flex-direction: row;
-    text-align: left;
-    align-items: flex-start;
-  }
-}
-
-@media (max-width: 360px) {
-  .phone-prefix {
-    min-width: 48px;
-    padding: 0 10px;
-  }
-
-  input,
-  .phone-field input {
-    font-size: 15px;
-  }
 }
