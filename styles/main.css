@@ -286,29 +286,6 @@ button:active {
   color: var(--text);
 }
 
-.gift-btn {
-  display: inline-block;
-  margin-top: 18px;
-  padding: 12px 18px;
-  border-radius: 12px;
-  background: linear-gradient(180deg, var(--brand-primary) 0%, #8a5a2c 100%);
-  color: #fff;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-decoration: none;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
-  transition: transform 0.06s ease, filter 0.2s ease;
-  text-align: center;
-}
-
-.gift-btn:hover {
-  filter: brightness(1.08);
-}
-
-.gift-btn:active {
-  transform: translateY(1px);
-}
-
 .badge {
   display: inline-block;
   padding: 2px 8px;

@@ -1,6 +1,8 @@
 const WEBHOOK_URL = 'https://hook.eu2.make.com/15sdp8heqq62udgrfmfquv4go2n9cbvs';
-const CONTEXT_KEY = 'dolota_gift_context';
-const VERIFIED_KEY = 'dolota_gift_verified';
+const CONTEXT_KEY = 'dolota_catalog_context';
+const CONTEXT_PERSIST_KEY = 'dolota_catalog_context_persist';
+const VERIFIED_KEY = 'dolota_catalog_verified';
+const VERIFICATION_TTL_MS = 10 * 60 * 1000;
 
 const phoneInput = document.getElementById('phoneDisplay');
 const sendCodeBtn = document.getElementById('sendCodeBtn');
@@ -14,6 +16,34 @@ const statusEl = document.getElementById('confirmStatus');
 
 let context = null;
 
+function readVerificationFrom(storage) {
+  if (!storage) return null;
+  try {
+    const raw = storage.getItem(VERIFIED_KEY);
+    if (!raw) return null;
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== 'object' || !data.verifiedAt) {
+      storage.removeItem(VERIFIED_KEY);
+      return null;
+    }
+    const ts = new Date(data.verifiedAt).getTime();
+    if (Number.isNaN(ts)) {
+      storage.removeItem(VERIFIED_KEY);
+      return null;
+    }
+    if (Date.now() - ts > VERIFICATION_TTL_MS) {
+      storage.removeItem(VERIFIED_KEY);
+      return null;
+    }
+    return data;
+  } catch (err) {
+    try {
+      storage.removeItem(VERIFIED_KEY);
+    } catch (e) {}
+    return null;
+  }
+}
+
 function parseContext() {
   try {
     const raw = sessionStorage.getItem(CONTEXT_KEY);
@@ -24,6 +54,45 @@ function parseContext() {
   } catch (err) {
     return null;
   }
+}
+
+function consumePersistedContext() {
+  try {
+    const raw = localStorage.getItem(CONTEXT_PERSIST_KEY);
+    if (!raw) return null;
+    localStorage.removeItem(CONTEXT_PERSIST_KEY);
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== 'object') return null;
+    try {
+      sessionStorage.setItem(CONTEXT_KEY, JSON.stringify(data));
+    } catch (err) {}
+    return data;
+  } catch (err) {
+    return null;
+  }
+}
+
+function parseVerified() {
+  let sessionData = null;
+  try {
+    sessionData = readVerificationFrom(sessionStorage);
+  } catch (err) {
+    sessionData = null;
+  }
+  if (sessionData) return sessionData;
+  let localData = null;
+  try {
+    localData = readVerificationFrom(localStorage);
+  } catch (err) {
+    localData = null;
+  }
+  if (localData) {
+    try {
+      sessionStorage.setItem(VERIFIED_KEY, JSON.stringify(localData));
+    } catch (err) {}
+    return localData;
+  }
+  return null;
 }
 
 function setStatus(message, type = '') {
@@ -59,6 +128,32 @@ function toggleResendLink(visible) {
   } else {
     resendCodeWrapper.classList.add('hidden');
     resendCodeWrapper.setAttribute('aria-hidden', 'true');
+  }
+}
+
+function contextMatchesVerification(ctx, verification) {
+  if (!ctx || !verification) return false;
+  if (ctx.phoneDigits && verification.phoneDigits && ctx.phoneDigits !== verification.phoneDigits) return false;
+  if (ctx.leadId && verification.leadId && ctx.leadId !== verification.leadId) return false;
+  return true;
+}
+
+function openCatalogTarget(ctx) {
+  if (!ctx || !ctx.catalogUrl) return;
+  const target = ctx.target && ctx.target !== '_self' ? '_blank' : '_self';
+  const url = ctx.catalogUrl;
+  const returnUrl = ctx.returnUrl || '../index.html';
+  try {
+    if (target === '_blank') {
+      window.open(url, '_blank', 'noopener');
+      setTimeout(() => {
+        window.location.href = returnUrl;
+      }, 400);
+    } else {
+      window.location.href = url;
+    }
+  } catch (err) {
+    window.location.href = url;
   }
 }
 
@@ -133,15 +228,38 @@ async function callWebhook(body) {
 
 function init() {
   context = parseContext();
+  if (!context) {
+    context = consumePersistedContext();
+  } else {
+    try {
+      localStorage.removeItem(CONTEXT_PERSIST_KEY);
+    } catch (err) {}
+  }
   if (!context || !context.leadId || (!context.phoneDigits && !context.phoneDisplay)) {
-    setStatus('Не знайдено даних для підтвердження. Поверніться до форми та натисніть «Отримати подарунок».', 'err');
+    setStatus('Не знайдено даних для підтвердження. Поверніться до каталогу та оберіть матеріал ще раз.', 'err');
     if (sendCodeBtn) sendCodeBtn.disabled = true;
+    if (resendCodeLink) resendCodeLink.disabled = true;
     return;
   }
 
   const displayValue = context.phoneDisplay || (context.phoneDigits ? `+38${context.phoneDigits}` : '');
   if (phoneInput) {
     phoneInput.value = displayValue;
+  }
+
+  const verified = parseVerified();
+  if (contextMatchesVerification(context, verified)) {
+    setStatus('Номер вже підтверджено. Відкриваємо каталог…', 'ok');
+    setTimeout(() => {
+      openCatalogTarget(context);
+    }, 250);
+    return;
+  }
+
+  if (context.catalogName) {
+    setStatus(`Для доступу до «${context.catalogName}» підтвердіть номер телефону.`, '');
+  } else {
+    setStatus('Введіть код, який ми надішлемо на вказаний номер телефону.', '');
   }
 
   if (codeInput) {
@@ -208,11 +326,16 @@ function init() {
             code,
             verifiedAt: new Date().toISOString(),
           };
-          sessionStorage.setItem(VERIFIED_KEY, JSON.stringify(verifiedPayload));
-          setStatus('Номер підтверджено! Переходимо до колеса фортуни…', 'ok');
+          try {
+            sessionStorage.setItem(VERIFIED_KEY, JSON.stringify(verifiedPayload));
+          } catch (err) {}
+          try {
+            localStorage.setItem(VERIFIED_KEY, JSON.stringify(verifiedPayload));
+          } catch (err) {}
+          setStatus('Номер підтверджено! Відкриваємо каталог…', 'ok');
           setTimeout(() => {
-            window.location.href = 'fortune-wheel.html';
-          }, 1200);
+            openCatalogTarget(context);
+          }, 500);
         } else {
           setStatus('Код не підходить. Перевірте цифри та спробуйте ще раз.', 'err');
           if (codeInput) {
