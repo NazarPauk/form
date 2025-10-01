@@ -426,6 +426,7 @@ function handleCatalogClick(ev) {
 
 function ensureCatalogHandler() {
   if (!catalogs || catalogsHandlerAttached) return;
+  if (isOnCatalogLandingPage()) return;
   catalogs.addEventListener('click', handleCatalogClick);
   catalogsHandlerAttached = true;
 }
@@ -490,6 +491,7 @@ function handleCatalogClick(ev) {
 
 function ensureCatalogHandler() {
   if (!catalogs || catalogsHandlerAttached) return;
+  if (isOnCatalogLandingPage()) return;
   catalogs.addEventListener('click', handleCatalogClick);
   catalogsHandlerAttached = true;
 }

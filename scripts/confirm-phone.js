@@ -1,18 +1,14 @@
 const WEBHOOK_URL = 'https://hook.eu2.make.com/15sdp8heqq62udgrfmfquv4go2n9cbvs';
 
-const CHECK_WEBHOOK_URL = 'https://hook.eu2.make.com/1eugiujlu8s20qptl3cgj49bikwkcrqc';
-
 const CONTEXT_KEY = 'dolota_catalog_context';
 const CONTEXT_PERSIST_KEY = 'dolota_catalog_context_persist';
 const VERIFIED_KEY = 'dolota_catalog_verified';
 const VERIFICATION_TTL_MS = 10 * 60 * 1000;
 
 const PENDING_CATALOG_KEY = 'dolota_catalog_pending';
-
-
-const PENDING_CATALOG_KEY = 'dolota_catalog_pending';
 const phoneInput = document.getElementById('phoneDisplay');
 const sendCodeBtn = document.getElementById('sendCodeBtn');
+const loader = document.getElementById('verificationLoader');
 const codeSection = document.getElementById('codeSection');
 const codeInput = document.getElementById('codeInput');
 const verifyCodeBtn = document.getElementById('verifyCodeBtn');
@@ -138,6 +134,18 @@ function toggleResendLink(visible) {
   }
 }
 
+function showLoader() {
+  if (!loader) return;
+  loader.classList.remove('hidden');
+  loader.setAttribute('aria-hidden', 'false');
+}
+
+function hideLoader() {
+  if (!loader) return;
+  loader.classList.add('hidden');
+  loader.setAttribute('aria-hidden', 'true');
+}
+
 function contextMatchesVerification(ctx, verification) {
   if (!ctx || !verification) return false;
   if (ctx.phoneDigits && verification.phoneDigits && ctx.phoneDigits !== verification.phoneDigits) return false;
@@ -238,28 +246,27 @@ async function callWebhook(body) {
 }
 
 async function checkRemoteVerification(ctx, displayValue) {
-  if (!ctx || !displayValue) return false;
+  if (!ctx || !displayValue) return { verified: false, error: false };
+  showLoader();
+  hideSendCodeButton();
+  setStatus('Перевіряємо статус підтвердження…');
+  let verified = false;
   try {
-    setStatus('Перевіряємо статус підтвердження…');
-    const response = await fetch(CHECK_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        phone: displayValue,
-        status: 'check_verification',
-      }),
+    const response = await callWebhook({
+      phone: displayValue,
+      status: 'check_verification',
     });
-    if (!response.ok) {
-      return false;
-    }
-    let data;
-    try {
-      data = await response.json();
-    } catch (err) {
-      return false;
-    }
-    const verificationValue = data && data.verification;
-    if (String(verificationValue).toLowerCase() === 'true') {
+    const statusValue = (() => {
+      if (!response) return '';
+      if (typeof response === 'string') return response;
+      if (typeof response === 'object') {
+        if (response && typeof response.status !== 'undefined') return response.status;
+        const alt = response.verification || response.verified || response['підтвердження'];
+        return typeof alt !== 'undefined' ? alt : '';
+      }
+      return '';
+    })();
+    if (String(statusValue).toLowerCase() === 'true') {
       const verifiedPayload = {
         ...ctx,
         verifiedAt: new Date().toISOString(),
@@ -277,13 +284,19 @@ async function checkRemoteVerification(ctx, displayValue) {
         localStorage.setItem(VERIFIED_KEY, JSON.stringify(verifiedPayload));
       } catch (err) {}
       setStatus('Номер вже підтверджено. Відкриваємо каталог…', 'ok');
+      verified = true;
       openCatalogTarget(ctx);
-      return true;
+      return { verified: true, error: false };
     }
+    return { verified: false, error: false };
   } catch (err) {
-    return false;
+    setStatus('Не вдалося автоматично перевірити номер. Спробуйте надіслати код.', 'err');
+    return { verified: false, error: true };
+  } finally {
+    if (!verified) {
+      hideLoader();
+    }
   }
-  return false;
 }
 
 async function init() {
@@ -297,6 +310,8 @@ async function init() {
   }
   if (!context || !context.leadId || (!context.phoneDigits && !context.phoneDisplay)) {
     setStatus('Не знайдено даних для підтвердження. Поверніться до каталогу та оберіть матеріал ще раз.', 'err');
+    hideLoader();
+    hideSendCodeButton();
     if (sendCodeBtn) sendCodeBtn.disabled = true;
     if (resendCodeLink) resendCodeLink.disabled = true;
     return;
@@ -317,15 +332,20 @@ async function init() {
     return;
   }
 
-  const remotelyVerified = await checkRemoteVerification(context, displayValue);
-  if (remotelyVerified) {
+  const remoteResult = await checkRemoteVerification(context, displayValue);
+  if (remoteResult.verified) {
     return;
   }
 
-  if (context.catalogName) {
-    setStatus(`Для доступу до «${context.catalogName}» підтвердіть номер телефону.`, '');
-  } else {
-    setStatus('Введіть код, який ми надішлемо на вказаний номер телефону.', '');
+  hideLoader();
+  showSendCodeButton();
+
+  if (!remoteResult.error) {
+    if (context.catalogName) {
+      setStatus(`Для доступу до «${context.catalogName}» підтвердіть номер телефону.`, '');
+    } else {
+      setStatus('Введіть код, який ми надішлемо на вказаний номер телефону.', '');
+    }
   }
 
   if (codeInput) {
