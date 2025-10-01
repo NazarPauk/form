@@ -459,6 +459,7 @@ function handleCatalogClick(ev) {
     phoneDisplay,
   };
   window.__leadId = leadId;
+
   const landingUrl = resolveLandingUrl();
   const contextPayload = {
     ...currentVerificationContext,
