@@ -35,8 +35,8 @@ let catalogsHandlerAttached = false;
 
 function resolveLandingUrl() {
   try {
-    const origin = location && location.origin ? location.origin : new URL(location.href).origin;
-    return new URL(CATALOG_LANDING_PAGE, origin + '/').toString();
+    const base = (typeof document !== 'undefined' && document.baseURI) ? document.baseURI : location.href;
+    return new URL(CATALOG_LANDING_PAGE, base).toString();
   } catch (err) {
     return CATALOG_LANDING_PAGE;
   }

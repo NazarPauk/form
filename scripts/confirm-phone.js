@@ -153,10 +153,19 @@ function contextMatchesVerification(ctx, verification) {
   return true;
 }
 
+function resolveCatalogLandingUrl() {
+  try {
+    const base = (typeof document !== 'undefined' && document.baseURI) ? document.baseURI : location.href;
+    return new URL('catalogs.html', base).toString();
+  } catch (err) {
+    return 'catalogs.html';
+  }
+}
+
 function openCatalogTarget(ctx) {
   if (!ctx || !ctx.catalogUrl) return;
   const url = ctx.catalogUrl;
-  const landingUrl = ctx.landingUrl || '/pages/catalogs.html';
+  const landingUrl = ctx.landingUrl || resolveCatalogLandingUrl();
   let opened = false;
   try {
     const win = window.open(url, '_blank', 'noopener');
