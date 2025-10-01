@@ -413,10 +413,6 @@ function handleCatalogClick(ev) {
     phoneDisplay,
   };
   window.__leadId = leadId;
-  track('catalog_open', { leadId, category: name, href: url });
-  if (lastSubmitPayload) {
-    sendCategoryUpdate(lastSubmitPayload, name);
-  }
   const landingUrl = resolveLandingUrl();
   const contextPayload = {
     ...currentVerificationContext,
@@ -478,10 +474,6 @@ function handleCatalogClick(ev) {
     phoneDisplay,
   };
   window.__leadId = leadId;
-  track('catalog_open', { leadId, category: name, href: url });
-  if (lastSubmitPayload) {
-    sendCategoryUpdate(lastSubmitPayload, name);
-  }
   const landingUrl = resolveLandingUrl();
   const contextPayload = {
     ...currentVerificationContext,
@@ -989,31 +981,6 @@ async function sendContactNow(payloadObj) {
     throw error;
   }
   return data;
-}
-let categorySent = false;
-async function sendCategoryUpdate(payloadObj, category) {
-  if (categorySent) return;
-  categorySent = true;
-  const params = new URLSearchParams(location.search);
-  const tag = params.get('tag') || 'nfc_unknown';
-  const body = {
-    ...payloadObj,
-    tag,
-    source: 'expo_nfc',
-    timestamp: new Date().toISOString(),
-    event: 'category_selected',
-    category: category || null,
-  };
-  try {
-    await fetch(WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-      keepalive: true,
-    });
-  } catch (e) {
-    /* ignore */
-  }
 }
 
 // === Збереження контакту локально ===
