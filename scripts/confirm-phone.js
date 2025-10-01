@@ -353,6 +353,7 @@ async function init() {
 
   hideLoader();
   showSendCodeButton();
+  toggleCodeSection(true);
 
   if (!remoteResult.error) {
     if (context.catalogName) {

@@ -424,6 +424,9 @@ function promptForMissingContext() {
 function handleCatalogClick(ev) {
   const a = ev.target.closest('#catalogs a[data-category], #catalogs a[href], #catalogs a[data-url]');
   if (!a) return;
+  if (a.hasAttribute('data-skip-verification')) {
+    return;
+  }
   ev.preventDefault();
   const rawHref = a.getAttribute('href');
   const dataUrl = a.getAttribute('data-url') || a.dataset.url;
