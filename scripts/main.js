@@ -35,8 +35,8 @@ let catalogsHandlerAttached = false;
 
 function resolveLandingUrl() {
   try {
-    const origin = location && location.origin ? location.origin : new URL(location.href).origin;
-    return new URL(CATALOG_LANDING_PAGE, origin + '/').toString();
+    const base = (typeof document !== 'undefined' && document.baseURI) ? document.baseURI : location.href;
+    return new URL(CATALOG_LANDING_PAGE, base).toString();
   } catch (err) {
     return CATALOG_LANDING_PAGE;
   }
@@ -74,10 +74,14 @@ function maybeOpenPendingCatalog() {
   if (!pending) return;
   setTimeout(() => {
     try {
-      const win = window.open(pending, '_blank', 'noopener');
-      if (!win) {
-        window.location.href = pending;
+      const win = window.open(pending, '_blank');
+      if (win) {
+        try {
+          win.opener = null;
+        } catch (e) {}
+        return;
       }
+      window.location.href = pending;
     } catch (err) {
       window.location.href = pending;
     }
@@ -283,8 +287,13 @@ function openCatalogAfterVerification({ url, landingUrl }) {
   if (!url) return;
   let opened = false;
   try {
-    const win = window.open(url, '_blank', 'noopener');
-    opened = !!win;
+    const win = window.open(url, '_blank');
+    if (win) {
+      try {
+        win.opener = null;
+      } catch (e) {}
+      opened = true;
+    }
   } catch (err) {
     opened = false;
   }
