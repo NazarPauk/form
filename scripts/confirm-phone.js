@@ -156,7 +156,7 @@ function contextMatchesVerification(ctx, verification) {
 function openCatalogTarget(ctx) {
   if (!ctx || !ctx.catalogUrl) return;
   const url = ctx.catalogUrl;
-  const landingUrl = ctx.landingUrl || '../../pages/catalogs.html';
+  const landingUrl = ctx.landingUrl || '/pages/catalogs.html';
   let opened = false;
   try {
     const win = window.open(url, '_blank', 'noopener');
