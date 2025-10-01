@@ -81,6 +81,7 @@ function getStoredVerification() {
     return data;
   } catch (e) {
     return null;
+
   }
 }
 
@@ -150,6 +151,7 @@ function promptForMissingContext() {
 }
 
 function handleCatalogClick(ev) {
+
   const a = ev.target.closest('#catalogs a[data-category], #catalogs a[href], #catalogs a[data-url]');
   if (!a) return;
   ev.preventDefault();
@@ -162,6 +164,7 @@ function handleCatalogClick(ev) {
     return;
   }
   const name = a.getAttribute('data-category') || a.textContent.trim();
+
   let url;
   if (hasDirectHref) {
     url = a.href;
@@ -172,6 +175,7 @@ function handleCatalogClick(ev) {
       url = baseHref;
     }
   }
+
   const targetAttr = a.getAttribute('target') || '_self';
   window.__selectedCategory = name;
   const ctx = ensureVerificationContextFromForm();
