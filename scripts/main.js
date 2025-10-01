@@ -124,6 +124,83 @@ function redirectToConfirm(context) {
   window.location.href = CONFIRM_PAGE_URL;
 }
 
+function ensureVerificationContextFromForm() {
+  if (!currentVerificationContext || !currentVerificationContext.phoneDigits) {
+    updateVerificationContext({});
+  }
+  if (currentVerificationContext && !currentVerificationContext.leadId && window.__leadId) {
+    currentVerificationContext.leadId = window.__leadId;
+  }
+  return currentVerificationContext;
+}
+
+function promptForMissingContext() {
+  if (statusEl) {
+    statusEl.textContent = 'Спочатку заповніть форму та вкажіть номер телефону, щоб відкрити каталог.';
+    statusEl.className = 'status err';
+  }
+  if (form) {
+    form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  if (phoneInput) {
+    try {
+      phoneInput.focus();
+    } catch (e) {}
+  }
+}
+
+function handleCatalogClick(ev) {
+  const a = ev.target.closest('#catalogs a[data-category], #catalogs a[href]');
+  if (!a) return;
+  ev.preventDefault();
+  const rawHref = a.getAttribute('href');
+  if (!rawHref || rawHref === '#') {
+    promptForMissingContext();
+    return;
+  }
+  const name = a.getAttribute('data-category') || a.textContent.trim();
+  const url = a.href;
+  const targetAttr = a.getAttribute('target') || '_self';
+  window.__selectedCategory = name;
+  const ctx = ensureVerificationContextFromForm();
+  const phoneDigits = ctx && ctx.phoneDigits;
+  const leadId = window.__leadId || (ctx && ctx.leadId) || null;
+  if (!leadId || !phoneDigits || phoneDigits.length !== PHONE_DIGITS_REQUIRED) {
+    promptForMissingContext();
+    return;
+  }
+  const phoneDisplay = ctx && ctx.phoneDisplay ? ctx.phoneDisplay : `${PHONE_PREFIX}${phoneDigits}`;
+  currentVerificationContext = {
+    leadId,
+    phoneDigits,
+    phoneDisplay,
+  };
+  window.__leadId = leadId;
+  track('catalog_open', { leadId, category: name, href: url });
+  if (lastSubmitPayload) {
+    sendCategoryUpdate(lastSubmitPayload, name);
+  }
+  const verification = getStoredVerification();
+  if (verification && isVerificationValidForCurrentContact(verification)) {
+    openCatalogDirect({ url, target: targetAttr });
+    return;
+  }
+  const contextPayload = {
+    ...currentVerificationContext,
+    catalogName: name,
+    catalogUrl: url,
+    target: targetAttr,
+    returnUrl: location.href,
+  };
+  redirectToConfirm(contextPayload);
+}
+
+function ensureCatalogHandler() {
+  if (!catalogs || catalogsHandlerAttached) return;
+  catalogs.addEventListener('click', handleCatalogClick);
+  catalogsHandlerAttached = true;
+}
+
 if (phoneInput) {
   const enforceDigits = () => {
     const digits = sanitizePhoneDigits(phoneInput.value);
@@ -133,6 +210,8 @@ if (phoneInput) {
   phoneInput.addEventListener('input', enforceDigits);
   phoneInput.addEventListener('blur', enforceDigits);
 }
+
+ensureCatalogHandler();
 
 // === Відправка подій (трекінг) ===
 async function track(eventName, data) {
@@ -709,36 +788,7 @@ form.addEventListener('submit', async (e) => {
         track('call_click', { leadId: window.__leadId });
       }, { once: true });
     } catch (e) {}
-    if (catalogs && !catalogsHandlerAttached) {
-      catalogs.addEventListener('click', (ev) => {
-        const a = ev.target.closest('#catalogs a[data-category], #catalogs a[href]');
-        if (!a) return;
-        const href = a.getAttribute('href');
-        if (!href || href === '#') return;
-        ev.preventDefault();
-        const name = a.getAttribute('data-category') || a.textContent.trim();
-        window.__selectedCategory = name;
-        const url = a.href;
-        const targetAttr = a.getAttribute('target') || '_self';
-        track('catalog_open', { leadId: window.__leadId, category: name, href: url });
-        sendCategoryUpdate(lastSubmitPayload || payload, name);
-        const verification = getStoredVerification();
-        if (verification && isVerificationValidForCurrentContact(verification)) {
-          openCatalogDirect({ url, target: targetAttr });
-          return;
-        }
-        const baseContext = currentVerificationContext || {};
-        const contextPayload = {
-          ...baseContext,
-          catalogName: name,
-          catalogUrl: url,
-          target: targetAttr,
-          returnUrl: location.href,
-        };
-        redirectToConfirm(contextPayload);
-      });
-      catalogsHandlerAttached = true;
-    }
+    ensureCatalogHandler();
     const saveBtn = document.getElementById('saveVCardBtn');
     if (saveBtn) {
       saveBtn.onclick = () => {
