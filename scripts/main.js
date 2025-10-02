@@ -837,7 +837,7 @@ function buildVCard(meta) {
   const tel = COMPANY_PHONE;
   const site = 'https://dolota.ua';
   const email = 'info@dolota.ua';
-  const chatbot = 'https://t.me/test421_bot';
+  const chatbot = 'https://t.me/dolota_pr_bot';
   const note = 'ЗБЕРЕЖІТЬ НОВИЙ КОНТАКТ ▼▼▼ Бурові машини, компресори, бурове обладнання та інструмент. Чатбот: ' + chatbot;
   const fn = `${family} ${given} ${additional}`.trim();
   return [
