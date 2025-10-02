@@ -139,6 +139,11 @@ body {
 
 .resend-wrapper {
   margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  flex-wrap: wrap;
 }
 
 .resend-link {
@@ -151,10 +156,17 @@ body {
   padding: 0;
 }
 
-.resend-link:disabled {
-  opacity: 0.5;
+.resend-link:disabled,
+.resend-link.is-disabled {
+  opacity: 0.4;
   cursor: not-allowed;
   text-decoration: none;
+}
+
+.resend-countdown {
+  font-size: 0.8rem;
+  color: var(--muted);
+  opacity: 0.6;
 }
 
 .hidden {
