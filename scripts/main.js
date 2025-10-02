@@ -798,7 +798,7 @@ const behaviorTracker = initBehaviorTracking();
 })();
 
 // === Telegram bot deep link ===
-const DEFAULT_TELEGRAM_BOT_URL = 'https://t.me/test421_bot';
+const DEFAULT_TELEGRAM_BOT_URL = 'https://t.me/dolota_pr_bot';
 let TELEGRAM_BOT_URL = DEFAULT_TELEGRAM_BOT_URL;
 try {
   const _bp = new URLSearchParams(location.search).get('bot');
@@ -837,8 +837,8 @@ function buildVCard(meta) {
   const tel = COMPANY_PHONE;
   const site = 'https://dolota.ua';
   const email = 'info@dolota.ua';
-  const chatbot = 'https://t.me/test421_bot';
-  const note = 'Бурові машини, компресори, бурове обладнання та інструмент. Чатбот: ' + chatbot;
+  const chatbot = 'https://t.me/dolota_pr_bot';
+  const note = 'ЗБЕРЕЖІТЬ НОВИЙ КОНТАКТ\n↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓\nБурові машини, компресори, бурове обладнання та інструмент. Чатбот: ' + chatbot;
   const fn = `${family} ${given} ${additional}`.trim();
   return [
     'BEGIN:VCARD',
