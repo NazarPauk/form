@@ -14,6 +14,12 @@ const codeInput = document.getElementById('codeInput');
 const verifyCodeBtn = document.getElementById('verifyCodeBtn');
 const resendCodeWrapper = document.getElementById('resendCodeWrapper');
 const resendCodeLink = document.getElementById('resendCodeLink');
+const RESEND_DELAY_SECONDS = 40;
+let resendCountdownTimer = null;
+let resendCountdownExpiresAt = null;
+const RESEND_DEFAULT_TEXT = resendCodeLink
+  ? resendCodeLink.textContent.trim()
+  : 'Надіслати код повторно';
 
 const statusEl = document.getElementById('confirmStatus');
 
@@ -131,7 +137,59 @@ function toggleResendLink(visible) {
   } else {
     resendCodeWrapper.classList.add('hidden');
     resendCodeWrapper.setAttribute('aria-hidden', 'true');
+    stopResendCountdown();
   }
+}
+
+function setResendLinkText(text) {
+  if (!resendCodeLink) return;
+  resendCodeLink.textContent = text;
+}
+
+function stopResendCountdown({ resetState = true } = {}) {
+  if (resendCountdownTimer) {
+    clearInterval(resendCountdownTimer);
+    resendCountdownTimer = null;
+  }
+  resendCountdownExpiresAt = null;
+  if (resetState && resendCodeLink) {
+    resendCodeLink.disabled = false;
+    resendCodeLink.removeAttribute('aria-disabled');
+    setResendLinkText(RESEND_DEFAULT_TEXT);
+  }
+}
+
+function updateResendCountdownDisplay() {
+  if (!resendCodeLink || !resendCountdownExpiresAt) return false;
+  const millisecondsLeft = resendCountdownExpiresAt - Date.now();
+  if (millisecondsLeft <= 0) {
+    stopResendCountdown();
+    return false;
+  }
+  const secondsLeft = Math.ceil(millisecondsLeft / 1000);
+  setResendLinkText(`${RESEND_DEFAULT_TEXT} (${secondsLeft} с)`);
+  return true;
+}
+
+function startResendCountdown() {
+  if (!resendCodeLink) return;
+  stopResendCountdown({ resetState: false });
+  resendCountdownExpiresAt = Date.now() + RESEND_DELAY_SECONDS * 1000;
+  resendCodeLink.disabled = true;
+  resendCodeLink.setAttribute('aria-disabled', 'true');
+  if (!updateResendCountdownDisplay()) {
+    stopResendCountdown();
+    return;
+  }
+  resendCountdownTimer = setInterval(() => {
+    if (!updateResendCountdownDisplay()) {
+      stopResendCountdown();
+    }
+  }, 500);
+}
+
+function isResendCountdownActive() {
+  return Boolean(resendCountdownTimer);
 }
 
 function showLoader() {
@@ -212,7 +270,10 @@ async function sendVerificationCode({ resend = false, displayValue }) {
   };
 
   if (resend) {
-    if (resendCodeLink) resendCodeLink.disabled = true;
+    if (resendCodeLink) {
+      resendCodeLink.disabled = true;
+      resendCodeLink.setAttribute('aria-disabled', 'true');
+    }
     setStatus('Надсилаємо код повторно…');
   } else {
     if (sendCodeBtn) {
@@ -226,6 +287,7 @@ async function sendVerificationCode({ resend = false, displayValue }) {
     await callWebhook(payload);
     toggleCodeSection(true);
     toggleResendLink(true);
+    startResendCountdown();
     setStatus(resend ? 'Код повторно надіслано. Перевірте повідомлення.' : 'Код надіслано. Введіть 4 цифри з повідомлення.', 'ok');
     if (codeInput) {
       codeInput.value = '';
@@ -238,7 +300,11 @@ async function sendVerificationCode({ resend = false, displayValue }) {
     }
   } finally {
     if (sendCodeBtn) sendCodeBtn.disabled = false;
-    if (resendCodeLink) resendCodeLink.disabled = false;
+    if (resendCodeLink && !isResendCountdownActive()) {
+      resendCodeLink.disabled = false;
+      resendCodeLink.removeAttribute('aria-disabled');
+      setResendLinkText(RESEND_DEFAULT_TEXT);
+    }
   }
 }
 
@@ -314,6 +380,8 @@ async function checkRemoteVerification(ctx, displayValue) {
 }
 
 async function init() {
+  toggleCodeSection(false);
+  toggleResendLink(false);
   context = parseContext();
   if (!context) {
     context = consumePersistedContext();
@@ -353,7 +421,8 @@ async function init() {
 
   hideLoader();
   showSendCodeButton();
-  toggleCodeSection(true);
+  toggleCodeSection(false);
+  toggleResendLink(false);
 
   if (!remoteResult.error) {
     if (context.catalogName) {
