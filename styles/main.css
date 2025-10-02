@@ -144,6 +144,8 @@ input {
   border: 1px solid var(--input-border);
   background: var(--input);
   color: var(--text);
+  font-size: 16px;
+  line-height: 1.4;
   outline: none;
 }
 
@@ -161,6 +163,8 @@ input {
   border-radius: 0;
   flex: 1;
   padding-left: 12px;
+  font-size: 16px;
+  line-height: 1.4;
 }
 
 .phone-prefix {
@@ -186,13 +190,25 @@ input {
   cursor: pointer;
   display: inline-block;
   transition: transform 0.12s ease, opacity 0.12s ease;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  line-height: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .contact-phone:hover,
-.contact-phone:focus {
+.contact-phone:focus-visible {
   opacity: 0.85;
   transform: translateY(-1px);
-  outline: none;
+}
+
+.contact-phone:focus-visible {
+  outline: 2px solid var(--brand-yellow);
+  outline-offset: 2px;
+  border-radius: 6px;
 }
 
 .contact-phone.copied::after {
