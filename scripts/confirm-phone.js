@@ -314,6 +314,8 @@ async function checkRemoteVerification(ctx, displayValue) {
 }
 
 async function init() {
+  toggleCodeSection(false);
+  toggleResendLink(false);
   context = parseContext();
   if (!context) {
     context = consumePersistedContext();
@@ -353,7 +355,8 @@ async function init() {
 
   hideLoader();
   showSendCodeButton();
-  toggleCodeSection(true);
+  toggleCodeSection(false);
+  toggleResendLink(false);
 
   if (!remoteResult.error) {
     if (context.catalogName) {
