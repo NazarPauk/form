@@ -14,6 +14,13 @@ const codeInput = document.getElementById('codeInput');
 const verifyCodeBtn = document.getElementById('verifyCodeBtn');
 const resendCodeWrapper = document.getElementById('resendCodeWrapper');
 const resendCodeLink = document.getElementById('resendCodeLink');
+const resendCountdownText = document.getElementById('resendCountdown');
+const RESEND_DELAY_SECONDS = 40;
+let resendCountdownTimer = null;
+let resendCountdownExpiresAt = null;
+const RESEND_DEFAULT_TEXT = resendCodeLink
+  ? resendCodeLink.textContent.trim()
+  : 'Надіслати код повторно';
 
 const resendCountdownText = document.getElementById('resendCountdown');
 
@@ -186,11 +193,7 @@ function stopResendCountdown({ resetState = true } = {}) {
 
 function formatCountdown(secondsLeft) {
   const clamped = Math.max(0, Math.ceil(secondsLeft));
-  const minutes = Math.floor(clamped / 60)
-    .toString()
-    .padStart(2, '0');
-  const seconds = (clamped % 60).toString().padStart(2, '0');
-  return `${minutes}:${seconds}`;
+  return clamped.toString();
 }
 
 function updateResendCountdownDisplay() {
