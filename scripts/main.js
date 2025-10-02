@@ -837,37 +837,9 @@ function buildVCard(meta) {
   const tel = COMPANY_PHONE;
   const site = 'https://dolota.ua';
   const email = 'info@dolota.ua';
-  const chatbot = 'https://t.me/dolota_pr_bot';
-  const note = [
-    'ЗБЕРЕЖІТЬ НОВИЙ КОНТАКТ',
-    '▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼',
-    'Бурові машини, компресори, бурове обладнання та інструмент.',
-    `Чатбот: ${chatbot}`,
-  ].join('\n');
+  const chatbot = 'https://t.me/test421_bot';
+  const note = 'ЗБЕРЕЖІТЬ НОВИЙ КОНТАКТ ▼▼▼ Бурові машини, компресори, бурове обладнання та інструмент. Чатбот: ' + chatbot;
   const fn = `${family} ${given} ${additional}`.trim();
-  const foldVCardProperty = (name, value) => {
-    const encoder = new TextEncoder();
-    const maxBytes = 75;
-    const prefix = `${name}:`;
-    let lines = [];
-    let current = prefix;
-    let currentBytes = encoder.encode(current).length;
-
-    for (const char of value) {
-      const charBytes = encoder.encode(char);
-      if (currentBytes + charBytes.length > maxBytes) {
-        lines.push(current);
-        current = ' ' + char;
-        currentBytes = encoder.encode(current).length;
-      } else {
-        current += char;
-        currentBytes += charBytes.length;
-      }
-    }
-
-    lines.push(current);
-    return lines.join('\r\n');
-  };
   return [
     'BEGIN:VCARD',
     'VERSION:3.0',
@@ -877,7 +849,7 @@ function buildVCard(meta) {
     `TEL;TYPE=work,voice:${tel}`,
     `EMAIL;TYPE=work:${email}`,
     `URL:${site}`,
-    foldVCardProperty('NOTE', note),
+    `NOTE:${note}`,
     'END:VCARD',
   ].join('\r\n');
 }
