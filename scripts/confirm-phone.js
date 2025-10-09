@@ -322,8 +322,12 @@ async function sendVerificationCode({ resend = false, displayValue }) {
     }
   } catch (err) {
     setStatus('Не вдалося надіслати код. Спробуйте ще раз.', 'err');
-    if (!resend && sendCodeBtn) {
-      showSendCodeButton();
+    if (!resend) {
+      if (sendCodeBtn) {
+        showSendCodeButton();
+      }
+      toggleCodeSection(false);
+      toggleResendLink(false);
     }
     if (resend) {
       stopResendCountdown();
@@ -451,8 +455,6 @@ async function init() {
 
   hideLoader();
   showSendCodeButton();
-  toggleCodeSection(true);
-  toggleResendLink(true);
 
   if (!remoteResult.error) {
     if (context.catalogName) {
@@ -461,6 +463,9 @@ async function init() {
       setStatus('Введіть код, який ми надішлемо на вказаний номер телефону.', '');
     }
   }
+
+  toggleCodeSection(false);
+  toggleResendLink(false);
 
   if (codeInput) {
     codeInput.addEventListener('input', () => {
