@@ -457,8 +457,8 @@ async function init() {
 
   hideLoader();
   showSendCodeButton();
-  toggleCodeSection(false);
-  toggleResendLink(false);
+  toggleCodeSection(true);
+  toggleResendLink(true);
 
   if (!remoteResult.error) {
     if (context.catalogName) {
