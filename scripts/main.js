@@ -7,7 +7,7 @@ function genLeadId() {
 }
 
 window.__leadId = null;
-const WEBHOOK_URL = "https://hook.eu2.make.com/qkjm77ab8dwde3lfyq41iaadon8dzpd1";
+const WEBHOOK_URL = "https://hook.eu2.make.com/1eugiujlu8s20qptl3cgj49bikwkcrqc";
 
 // === Елементи ===
 const form = document.getElementById('leadForm');
