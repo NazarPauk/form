@@ -22,15 +22,6 @@ const RESEND_DEFAULT_TEXT = resendCodeLink
   ? resendCodeLink.textContent.trim()
   : 'Надіслати код повторно';
 
-const resendCountdownText = document.getElementById('resendCountdown');
-
-const RESEND_DELAY_SECONDS = 40;
-let resendCountdownTimer = null;
-let resendCountdownExpiresAt = null;
-const RESEND_DEFAULT_TEXT = resendCodeLink
-  ? resendCodeLink.textContent.trim()
-  : 'Надіслати код повторно';
-
 const statusEl = document.getElementById('confirmStatus');
 
 let context = null;
