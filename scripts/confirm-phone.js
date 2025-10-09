@@ -1,4 +1,4 @@
-const WEBHOOK_URL = 'https://hook.eu2.make.com/15sdp8heqq62udgrfmfquv4go2n9cbvs';
+const WEBHOOK_URL = 'https://hook.eu2.make.com/q6frdvkglswb72umh7jbjercc7gd2eqv';
 
 const CONTEXT_KEY = 'dolota_catalog_context';
 const CONTEXT_PERSIST_KEY = 'dolota_catalog_context_persist';
